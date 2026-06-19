@@ -1,0 +1,42 @@
+codename,name,is_super_admin_permission,description
+can_add_item,Can add item,false,Allows adding new items to the tenant menu
+can_update_item,Can update item,false,Allows updating existing items in the tenant menu
+can_view_item,Can view item,false,Allows viewing items in the tenant menu
+can_delete_item,Can delete item,false,Allows deleting items from the tenant menu
+can_add_order,Can add order,false,Allows creating new orders for the tenant
+can_update_order,Can update order,false,Allows updating existing orders for the tenant
+can_delete_order,Can delete order,false,Allows deleting orders for the tenant
+can_view_order,Can view order,false,Allows viewing orders for the tenant
+can_create_user,Can create user,false,Allows creating new users within the tenant
+can_update_user,Can update user,false,Allows updating existing users within the tenant
+can_delete_user,Can delete user,false,Allows deleting users within the tenant
+can_view_user,Can view user,false,Allows viewing users within the tenant
+can_create_role,Can create role,false,Allows creating new roles within the tenant
+can_update_role,Can update role,false,Allows updating existing roles within the tenant
+can_delete_role,Can delete role,false,Allows deleting roles within the tenant
+can_view_role,Can view role,false,Allows viewing roles within the tenant
+can_view_permission,Can view permission,false,Allows viewing available permissions within the tenant
+can_add_user_to_tenant,Can add user to tenant,false,Allows adding existing users to the tenant
+can_add_item_for_all_tenant,Can add item for all tenant,true,Allows admin to add items on behalf of any tenant
+can_update_item_of_all_tenant,Can update item of all tenant,true,Allows admin to update items belonging to any tenant
+can_view_item_of_all_tenant,Can view item of all tenant,true,Allows admin to view items across all tenants
+can_delete_item_of_all_tenant,Can delete item of all tenant,true,Allows admin to delete items belonging to any tenant
+can_add_order_for_all_tenant,Can add order for all tenant,true,Allows admin to create orders on behalf of any tenant
+can_update_order_of_all_tenant,Can update order of all tenant,true,Allows admin to update orders belonging to any tenant
+can_delete_order_of_all_tenant,Can delete order of all tenant,true,Allows admin to delete orders belonging to any tenant
+can_view_order_of_all_tenant,Can view order of all tenant,true,Allows admin to view orders across all tenants
+can_create_user_for_all_tenant,Can create user for all tenant,true,Allows admin to create users on behalf of any tenant
+can_update_user_of_all_tenant,Can update user of all tenant,true,Allows admin to update users belonging to any tenant
+can_delete_user_of_all_tenant,Can delete user of all tenant,true,Allows admin to delete users belonging to any tenant
+can_view_user_of_all_tenant,Can view user of all tenant,true,Allows admin to view users across all tenants
+can_create_role_for_all_tenant,Can create role for all tenant,true,Allows admin to create roles on behalf of any tenant
+can_update_role_of_all_tenant,Can update role of all tenant,true,Allows admin to update roles belonging to any tenant
+can_delete_role_of_all_tenant,Can delete role of all tenant,true,Allows admin to delete roles belonging to any tenant
+can_view_role_of_all_tenant,Can view role of all tenant,true,Allows admin to view roles across all tenants
+can_view_all_permission,Can view all permission,true,Allows admin to view all permissions across the system
+can_add_tenant,Can add tenant,true,Allows admin to create new tenants in the system
+can_update_tenant,Can update tenant,true,Allows staff user to update assigned tenants
+can_update_all_tenant,Can update all tenant,true,Allows admin to update details of any tenant
+can_view_all_tenant,Can view all tenant,true,Allows admin to view all tenants in the system
+can_delete_tenant,Can delete tenant,true,Allows staff or admin to delete tenant 
+can_add_user_to_all_tenant,Can add user to all tenant,true,Allows admin to add users to any tenant in the system

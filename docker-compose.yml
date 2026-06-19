@@ -1,0 +1,54 @@
+services:
+  token_hub_db:
+    image: postgres:17-bookworm
+    container_name: token_hub_db
+    env_file:
+      - .env.db
+    ports:
+      - "5432:5432"
+    volumes:
+      - token_hub_postgres_data:/var/lib/postgresql/data
+    networks:
+      - token_hub_network
+    restart: always
+
+  token_hub_app:
+    build: .
+    container_name: token_hub_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/usr/tokenhub
+    env_file:
+      - .env
+    networks:
+      - token_hub_network
+    depends_on:
+      - token_hub_db
+    command: ["sh", "entrypoint.sh"]
+    restart: always
+
+  token_hub_redis:
+    image: redis:8-bookworm
+    container_name: token_hub_redis
+    ports:
+      - "6379:6379"
+    env_file:
+      - .env.redis
+    depends_on:
+      - token_hub_app
+    volumes:
+      - token_hub_redis_data:/data
+    networks:
+      - token_hub_network
+    restart: always
+
+networks:
+  token_hub_network:
+    external: true
+
+volumes:
+  token_hub_postgres_data:
+    external: true
+  token_hub_redis_data:
+    external: true
