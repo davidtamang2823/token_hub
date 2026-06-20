@@ -21,6 +21,8 @@ class AbstractUserRepository(abc.ABC):
     async def exists_in_tenant(self,  user_id:UUID, tenant_id: UUID) -> bool:
         ...
 
+    @abc.abstractmethod
+    async def role_already_assigned_to_user(self, role_id: UUID) -> bool: ...
 
 class UserRepository(AbstractUserRepository):
 
@@ -51,6 +53,17 @@ class UserRepository(AbstractUserRepository):
             .where(
                 user_orm.UserTenant.user_id == user_id,
                 user_orm.UserTenant.tenant_id == tenant_id
+            )
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar()
+
+    async def role_already_assigned_to_user(self, role_id: UUID) -> bool:
+
+        stmt = select(
+            exists()
+            .where(
+                user_orm.UserTenant.role_id == role_id
             )
         )
         result = await self._session.execute(stmt)
