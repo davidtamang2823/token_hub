@@ -11,10 +11,13 @@ class AbstractRolePermissionRepository(abc.ABC):
 
 
     @abc.abstractmethod
-    async def get_role_by_id(self, role_id: UUID) -> role_permission_domain.Role: ...
+    async def get_role_by_id(self, role_id: UUID, tenant_id: UUID | None) -> role_permission_domain.Role: ...
 
     @abc.abstractmethod
     async def get_role_by_name_and_tenant_id(self, name: str, tenant_id: UUID | None = None) -> role_permission_domain.Role: ...
+
+    @abc.abstractmethod
+    async def role_exists_in_tenant(self, name: str, tenant_id: UUID | None = None) -> bool: ...
 
     @abc.abstractmethod
     async def list_role(self, role_filters: dict, offset: int, limit: int)  -> tuple[int, list[role_permission_orm.Role]]: ...
@@ -39,7 +42,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
         self._session = session
 
 
-    async def get_role_by_id(self, role_id: UUID) -> role_permission_domain.Role | None:
+    async def get_role_by_id(self, role_id: UUID, tenant_id: UUID | None) -> role_permission_domain.Role | None:
         
         stmt = (
             select(
@@ -50,7 +53,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
                     role_permission_orm.Role.permissions
                 )
             )
-            .where(role_permission_orm.Role.id == role_id)
+            .where(role_permission_orm.Role.id == role_id, role_permission_orm.Role.tenant_id == tenant_id)
         )
 
         result = await self._session.execute(stmt)
@@ -77,6 +80,23 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
         result = await self._session.execute(stmt)
         
         return self._to_role_domain_model(result.scalar_one_or_none())
+
+    async def role_exists_in_tenant(self, name: str, tenant_id: UUID | None, exclude_role_id: UUID | None = None) -> bool:
+
+        stmt = (
+            select(
+                exists()
+                .where(
+                    role_permission_orm.Role.name.ilike(name),
+                    role_permission_orm.Role.tenant_id == tenant_id
+                )
+            )
+        )
+        if exclude_role_id:
+            stmt = stmt.where(role_permission_orm.Role.id != exclude_role_id)
+
+        result = await self._session.execute(stmt)
+        return result.scalar()
 
     async def list_role(self, role_filters: dict, offset: int, limit: int)  -> tuple[int, list[role_permission_orm.Role]]:
         
