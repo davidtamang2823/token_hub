@@ -46,16 +46,18 @@ class Role(BaseModel):
             name=name,
             permission_ids=permission_ids,
             is_system_role=False,
+            created_by_id=created_by_id
         )
 
     @classmethod
-    def update(cls, role_id: UUID, name: str, permission_ids: list[UUID], updated_by_by_id: UUID, tenant_id: UUID | None = None) -> "Role":
+    def update(cls, role_id: UUID, name: str, permission_ids: list[UUID], updated_by_id: UUID, tenant_id: UUID | None = None) -> "Role":
         return cls(
             id=role_id,
             tenant_id=tenant_id,
             name=name,
             permission_ids=permission_ids,
             is_system_role=False,
+            updated_by_id=updated_by_id
         )
 
 class Permission(BaseModel):
