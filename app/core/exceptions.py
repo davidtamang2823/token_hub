@@ -10,6 +10,7 @@ class ErrorType(StrEnum):
     INTERNAL_ERROR = "internal_error"
     TOKEN_EXPIRED = "token_expired"
     INVALID_TOKEN = "invalid_token"
+    RESOURCE_IN_USE = "resource_in_use"
 
 class AppException(Exception):
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -49,3 +50,8 @@ class ForbiddenException(AppException):
     status_code = status.HTTP_403_FORBIDDEN
     error_type = ErrorType.FORBIDDEN
     message = "You do not have permission to perform this action"
+
+class ResourceInUseError(AppException):
+    status_code = status.HTTP_409_CONFLICT
+    error_type = ErrorType.RESOURCE_IN_USE
+    message = "You cannot perform this operation resource has been used"
