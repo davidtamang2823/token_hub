@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from accounts.user.infrastructure.repository import UserRepository
 from accounts.auth.infrastructure.repository import UserAuthRepository
 from tenants.infrastructure.repository import TenantRepository
+from accounts.role_permission.infrastructure.repository import RolePermissionRepository
 
 class UnitOfWork:
 
@@ -30,3 +31,7 @@ class UnitOfWork:
     @property
     def tenant_repository(self):
         return TenantRepository(self._session)
+
+    @property
+    def role_permission_repository(self):
+        return RolePermissionRepository(self._session)
