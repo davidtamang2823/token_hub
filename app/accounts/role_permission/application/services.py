@@ -5,7 +5,7 @@ from core.unit_of_work import UnitOfWork
 from core.context import CurrentUser
 from core.exceptions import NotFoundException, AlreadyExistsException, ResourceInUseError, ForbiddenException
 from core.pagination import Pagination
-
+from accounts.role_permission.presentation import schemas
 
 class AbstractRolePermissionService(abc.ABC):
 
@@ -15,6 +15,9 @@ class AbstractRolePermissionService(abc.ABC):
 
     @abc.abstractmethod
     async def list_role(self, role_filters: dict, page: int, page_size: int)  -> Pagination: ...
+
+    @abc.abstractmethod
+    async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> schemas.ListRoleOptionSchema: ...
 
     @abc.abstractmethod
     async def list_permission(self, permission_filters: dict) -> list[role_permission_domain.Permission]: ...
@@ -53,14 +56,21 @@ class RolePermissionService(AbstractRolePermissionService):
 
         role_filters["tenant_id"] = self._current_user.tenant_id
         offset = (page - 1) * page_size
-        total, roles = await self._uow.role_permission_repository.list_role(role_filters, offset, page_size)
-
+        roles = await self._uow.role_permission_repository.list_role(role_filters, offset, page_size)
+        total = await self._uow.role_permission_repository.count_roles(role_filters)
         return Pagination(
             page=page,
             page_size=page_size,
             total=total,
-            data=roles
+            data=[schemas.Role.model_validate(role) for role in roles]
         )
+
+    async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> schemas.ListRoleOptionSchema:
+
+        role_filters = {"tenant_id": tenant_id}
+        offset = (page - 1) * page_size
+        roles = await self._uow.role_permission_repository.list_role(role_filters, offset, page_size)
+        return schemas.ListRoleOptionSchema(roles=[schemas.RoleOption.model_validate(role) for role in roles])
 
     async def list_permission(self, permission_filters: dict) -> list[role_permission_domain.Permission]:
         
