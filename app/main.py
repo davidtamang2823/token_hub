@@ -10,6 +10,7 @@ from core.dependencies import verify_tenant_membership
 
 from accounts.auth.presentation.v1.routes import router as auth_router
 from tenants.presentation.v1.routes import router as tenant_router, admin_router as tenant_admin_router
+from accounts.role_permission.presentation.v1.routes import router as role_router, admin_router as role_admin_router
 
 app = FastAPI()
 
@@ -58,9 +59,11 @@ app.add_middleware(JWTAuthenticationMiddleware, token_handler=token_handler)
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router)
 v1_router.include_router(tenant_router)
+v1_router.include_router(role_router)
 
 v1_admin_router = APIRouter(prefix="/api/v1")
-v1_router.include_router(tenant_admin_router)
+v1_admin_router.include_router(tenant_admin_router)
+v1_admin_router.include_router(role_admin_router)
 
 app.include_router(v1_router)
 app.include_router(v1_admin_router)
