@@ -27,7 +27,6 @@ class Permission(NullableAuditModel):
     codename: Mapped[str] = mapped_column(String(75), unique=True)
     name: Mapped[str] = mapped_column(String(75), unique=True)
     description: Mapped[str] = mapped_column(String(500))
-    is_super_admin_permission: Mapped[bool] = mapped_column(default=False)
     roles: Mapped[typing.List["Role"]] = relationship(secondary="role_permissions", back_populates="permissions")
 
 
