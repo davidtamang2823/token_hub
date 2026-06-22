@@ -5,6 +5,7 @@ from sqlalchemy import select, func, delete, exists
 from sqlalchemy.orm import selectinload
 from accounts.role_permission.infrastructure import orm as  role_permission_orm
 from accounts.role_permission.domain import models as role_permission_domain
+from core.constants.permissions import USER_PERMISSIONS, STAFF_USER_PERMISSIONS
 
 
 class AbstractRolePermissionRepository(abc.ABC):
@@ -21,6 +22,9 @@ class AbstractRolePermissionRepository(abc.ABC):
 
     @abc.abstractmethod
     async def list_role(self, role_filters: dict, offset: int, limit: int)  -> tuple[int, list[role_permission_orm.Role]]: ...
+
+    @abc.abstractmethod
+    async def count_roles(self, role_filters: dict) -> int: ...
 
     @abc.abstractmethod
     async def list_permission(self, permission_filters: dict) -> list[role_permission_domain.Permission]: ...
@@ -98,7 +102,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
         result = await self._session.execute(stmt)
         return result.scalar()
 
-    async def list_role(self, role_filters: dict, offset: int, limit: int)  -> tuple[int, list[role_permission_orm.Role]]:
+    async def list_role(self, role_filters: dict, offset: int, limit: int)  ->  list[role_permission_orm.Role]:
         
         tenant_id = role_filters.get("tenant_id")
         search_key = role_filters.get("q")
@@ -112,17 +116,6 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
             stmt = stmt.where(role_permission_orm.Role.name.ilike(f"{search_key}%"))
         
 
-        total = (
-            await self._session.scalar(
-                select(
-                    func.count()
-                )
-                .select_from(
-                    stmt.subquery()
-                )
-            )
-        )
-
         result = await self._session.execute(
             stmt.order_by(
                 role_permission_orm.Role.name
@@ -133,9 +126,20 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
 
         roles = list(result.scalars().all())
         
-        return total, roles
+        return roles
 
+    async def count_roles(self, role_filters: dict) -> int:
 
+        tenant_id = role_filters.get("tenant_id")
+        search_key = role_filters.get("q")
+
+        stmt = (
+            select(func.count(role_permission_orm.Role.id)).where(role_permission_orm.Role.tenant_id == tenant_id)
+        )
+        if search_key:
+            stmt = stmt.where(role_permission_orm.Role.name.ilike(f"%{q}%"))
+
+        return await self._session.scalar(stmt)
 
     async def list_permission(self, permission_filters: dict) -> list[role_permission_domain.Permission]:
 
@@ -166,7 +170,11 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
             stmt = stmt.where(role_permission_orm.Permission.name.ilike(f"{search_key}%"))
 
         if is_staff is not None:
-            stmt = stmt.where(role_permission_orm.Permission.is_super_admin_permission == is_staff)
+            stmt = stmt.where(
+                role_permission_orm.Permission.name.in_(
+                    STAFF_USER_PERMISSIONS if is_staff else USER_PERMISSIONS
+                )
+            )
         
         result = await self._session.execute(
             stmt.order_by(role_permission_orm.Permission.name).distinct()
@@ -212,6 +220,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
         role_stmt = (
             select(role_permission_orm.Role)
             .where(role_permission_orm.Role.id == role.id)
+            .options(selectinload(role_permission_orm.Role.permissions))
         )
 
         role_result = await self._session.execute(role_stmt)
@@ -230,7 +239,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
         )
 
         permission_result = await self._session.execute(permission_stmt)
-        permission_orm_objs = list(permission_result.scalars.all())
+        permission_orm_objs = list(permission_result.scalars().all())
 
         role_orm_obj.name = role.name
         role_orm_obj.updated_by_id = role.updated_by_id
