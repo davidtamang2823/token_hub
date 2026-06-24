@@ -2,7 +2,7 @@ import abc
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, func, or_
+from sqlalchemy import select, update, func, or_, exists
 from sqlalchemy.orm import selectinload
 
 from tenants.domain import models as tenant_domain_models
@@ -18,6 +18,15 @@ class AbstractTenantRepository(abc.ABC):
 
     @abc.abstractmethod
     async def get_tenant_by_name(self, name: str, exclude_tenant_id: UUID = None) -> tenant_domain_models.Tenant | None: ...
+
+    @abc.abstractmethod
+    async def tenant_id_exists(self, tenant_id: UUID) -> bool: ...
+
+    @abc.abstractmethod
+    async def tenant_name_exists(self, name: str, exclude_tenant_id: UUID = None) -> bool: ...
+
+    @abc.abstractmethod
+    async def tenant_code_exists(self, code: str, exclude_tenant_id: UUID = None) -> bool: ...
 
     @abc.abstractmethod
     async def get_tenant_by_code(self, code: str, exclude_tenant_id: UUID = None) -> tenant_domain_models.Tenant | None: ...
@@ -91,6 +100,57 @@ class TenantRepository(AbstractTenantRepository):
         return self._to_tenant_domain_model(
             tenant_orm_obj=tenant_orm_obj
         ) 
+
+
+    async def tenant_id_exists(self, tenant_id: UUID) -> bool:
+
+        stmt = (
+            select(
+                exists()
+                .where(tenant_orm.Tenant.id == tenant_id)
+            )
+        )
+
+        result = await self._session.execute(stmt)
+        return result.scalar()
+
+
+    async def tenant_name_exists(self, name: str, exclude_tenant_id: UUID = None) -> bool:
+
+        exists_stmt = (
+            exists()
+            .where(tenant_orm.Tenant.name.ilike(name), tenant_orm.Tenant.is_deleted==False)
+        )
+        if exclude_tenant_id:
+            exists_stmt = exists_stmt.where(tenant_orm.Tenant.id != exclude_tenant_id)
+        stmt = (
+            select(
+               exists_stmt
+            )
+        )
+
+        result = await self._session.execute(stmt)
+        return result.scalar()
+
+    async def tenant_code_exists(self, code: str, exclude_tenant_id: UUID = None) -> bool:
+
+        exists_stmt = (
+            exists()
+            .where(tenant_orm.Tenant.code.ilike(code), tenant_orm.Tenant.is_deleted==False)
+        )
+        
+        if exclude_tenant_id:
+            exists_stmt = exists_stmt.where(tenant_orm.Tenant.id != exclude_tenant_id)
+        
+        stmt = (
+            select(
+                exists_stmt
+            )
+        )
+
+        result = await self._session.execute(stmt)
+        return result.scalar()
+
 
 
     async def list_tenant(self, tenant_filters: dict, limit: int, offset: int) -> tuple[list[tenant_domain_models.Tenant], int]:
