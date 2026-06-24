@@ -16,7 +16,7 @@ async def seed_roles_with_permission():
             result = await session.execute(stmt)
             existing_role = result.scalar_one_or_none()
 
-            stmt = select(Permission).where(Permission.name.in_(STAFF_DEFAULT_ROLE["permissions"]))
+            stmt = select(Permission).where(Permission.codename.in_(STAFF_DEFAULT_ROLE["permissions"]))
             result = await session.execute(stmt)
             permission_orm_objs = list(result.scalars().all())
 
