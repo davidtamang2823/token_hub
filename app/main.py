@@ -6,7 +6,6 @@ from core.middleware.authentication import JWTAuthenticationMiddleware
 from core.security import TokenHandler
 from core.config import settings
 from core.exceptions import AppException, ErrorType
-from core.dependencies import verify_tenant_membership
 
 from accounts.auth.presentation.v1.routes import router as auth_router
 from tenants.presentation.v1.routes import router as tenant_router, admin_router as tenant_admin_router
@@ -54,14 +53,14 @@ token_handler = TokenHandler(
 
 app.add_middleware(JWTAuthenticationMiddleware, token_handler=token_handler)
 
+API_V1 = "/api/v1"
 
-
-v1_router = APIRouter(prefix="/api/v1")
+v1_router = APIRouter(prefix=API_V1)
 v1_router.include_router(auth_router)
 v1_router.include_router(tenant_router)
 v1_router.include_router(role_router)
 
-v1_admin_router = APIRouter(prefix="/api/v1")
+v1_admin_router = APIRouter(prefix=API_V1)
 v1_admin_router.include_router(tenant_admin_router)
 v1_admin_router.include_router(role_admin_router)
 
