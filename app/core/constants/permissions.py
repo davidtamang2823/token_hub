@@ -34,8 +34,6 @@ CAN_REMOVE_USER_FROM_TENANT = "can_remove_user_from_tenant"
 
 # These are only assignable to system-level roles (tenant_id = NULL).
 
-CAN_VIEW_ALL_PERMISSION = "can_view_all_permission"
-
 CAN_ADD_TENANT = "can_add_tenant"
 CAN_UPDATE_TENANT = "can_update_tenant"
 CAN_VIEW_ALL_TENANT = "can_view_all_tenant"
