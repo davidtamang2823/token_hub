@@ -86,18 +86,24 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
         return self._to_role_domain_model(result.scalar_one_or_none())
 
     async def role_exists_in_tenant(self, name: str, tenant_id: UUID | None, exclude_role_id: UUID | None = None) -> bool:
-
-        stmt = (
-            select(
-                exists()
-                .where(
-                    role_permission_orm.Role.name.ilike(name),
-                    role_permission_orm.Role.tenant_id == tenant_id
-                )
+        
+        exists_stmt = (
+            exists()
+            .where(
+                role_permission_orm.Role.name.ilike(name),
+                role_permission_orm.Role.tenant_id == tenant_id
             )
         )
+        
         if exclude_role_id:
-            stmt = stmt.where(role_permission_orm.Role.id != exclude_role_id)
+            exists_stmt = exists_stmt.where(role_permission_orm.Role.id != exclude_role_id)
+        
+        stmt = (
+            select(
+                exists_stmt
+            )
+        )
+
 
         result = await self._session.execute(stmt)
         return result.scalar()
@@ -171,7 +177,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
 
         if is_staff is not None:
             stmt = stmt.where(
-                role_permission_orm.Permission.name.in_(
+                role_permission_orm.Permission.codename.in_(
                     STAFF_USER_PERMISSIONS if is_staff else USER_PERMISSIONS
                 )
             )
@@ -205,7 +211,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
         )
 
         permission_result = await self._session.execute(permission_stmt)
-        permission_orm_objs = list(permission_result.scalars.all())
+        permission_orm_objs = list(permission_result.scalars().all())
         role_orm_obj.permissions = permission_orm_objs
 
         self._session.add(role_orm_obj)
