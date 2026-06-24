@@ -85,11 +85,9 @@ class TenantService(AbstractTenantService):
             created_by_id=self._current_user.id
         )
 
-        tenant_with_same_name_exists = await self._uow.tenant_repository.get_tenant_by_name(tenant.name)
-        if tenant_with_same_name_exists:
+        if await self._uow.tenant_repository.tenant_name_exists(tenant.name):
             raise AlreadyExistsException(f"Tenant with this name {tenant.name} already exists")
-        tenant_with_same_code_exists = await self._uow.tenant_repository.get_tenant_by_code(tenant.code) 
-        if tenant_with_same_code_exists:
+        if await self._uow.tenant_repository.tenant_code_exists(tenant.code):
             raise AlreadyExistsException(f"Tenant with this code {tenant.code} already exists")
 
         tenant = await self._uow.tenant_repository.create_tenant(tenant=tenant)
@@ -100,15 +98,15 @@ class TenantService(AbstractTenantService):
 
         tenant_id = data.get("id")
 
-        is_user_exists_in_tenant = await self._uow.user_repository.exists_in_tenant(
-            user_id=self._current_user.id,
-            tenant_id=tenant_id
-        )
-        if not is_user_exists_in_tenant:
-            raise ForbiddenException("User not assigned to this tenant")
+        if permissions.CAN_VIEW_ALL_TENANT not in  self._current_user.permissions:
+            is_user_exists_in_tenant = await self._uow.user_repository.exists_in_tenant(
+                user_id=self._current_user.id,
+                tenant_id=tenant_id
+            )
+            if not is_user_exists_in_tenant:
+                raise ForbiddenException("User not assigned to this tenant")
 
-        existing_tenant = await self._uow.tenant_repository.get_tenant_by_id(tenant_id=tenant_id)
-        if not existing_tenant:
+        if not await self._uow.tenant_repository.tenant_id_exists(tenant_id=tenant_id):
             raise NotFoundException(f"Tenant with id {tenant_id} not found")
 
         tenant = Tenant.update(
@@ -119,11 +117,9 @@ class TenantService(AbstractTenantService):
             updated_by_id=self._current_user.id
         )
 
-        tenant_with_same_name_exists = await self._uow.tenant_repository.get_tenant_by_name(tenant.name, exclude_tenant_id=tenant.id)
-        if tenant_with_same_name_exists:
+        if await self._uow.tenant_repository.tenant_name_exists(tenant.name, exclude_tenant_id=tenant.id):
             raise AlreadyExistsException(f"Tenant with this name {tenant.name} already exists")
-        tenant_with_same_code_exists = await self._uow.tenant_repository.get_tenant_by_code(tenant.code, exclude_tenant_id=tenant.id) 
-        if tenant_with_same_code_exists:
+        if await self._uow.tenant_repository.tenant_code_exists(tenant.code, exclude_tenant_id=tenant.id):
             raise AlreadyExistsException(f"Tenant with this code {tenant.code} already exists")
 
         tenant = await self._uow.tenant_repository.update_tenant(tenant=tenant)
@@ -139,8 +135,7 @@ class TenantService(AbstractTenantService):
         if not is_user_exists_in_tenant:
             raise ForbiddenException("User not assigned to this tenant")
 
-        existing_tenant = await self._uow.tenant_repository.get_tenant_by_id(tenant_id=tenant_id)
-        if not existing_tenant:
+        if not await self._uow.tenant_repository.tenant_id_exists(tenant_id=tenant_id):
             raise NotFoundException(f"Tenant with id {tenant_id} not found")
 
         await self._uow.tenant_repository.delete_tenant(tenant_id=tenant_id)
