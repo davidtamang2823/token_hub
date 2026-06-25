@@ -33,6 +33,9 @@ class AbstractRolePermissionRepository(abc.ABC):
     async def create_role(self, role: role_permission_domain.Role) -> role_permission_domain.Role: ...
 
     @abc.abstractmethod
+    async def bulk_create_role(self, roles: list[role_permission_domain.Role]) -> None: ...
+
+    @abc.abstractmethod
     async def update_role(self, role: role_permission_domain.Role) -> role_permission_domain.Role: ...
 
     @abc.abstractmethod
@@ -190,35 +193,72 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
 
         return permissions
 
+    async def get_permission_by_codename(self, permission_codenames: list[str]) -> list[role_permission_domain.Permission]:
+        stmt = (
+            select(
+                role_permission_orm.Permission
+            )
+            .where(role_permission_orm.Permission.codename.in_(permission_codenames))
+        )
 
-    async def create_role(self, role: role_permission_domain.Role) -> role_permission_domain.Role:
+        result = await self._session.execute(stmt)
+
+        return [
+            role_permission_domain.Permission(
+                id=permission_orm_obj.id,
+                name=permission_orm_obj.name,
+                codename=permission_orm_obj.codename,
+                description=permission_orm_obj.description
+            ) 
+            for permission_orm_obj in result.scalars().all()
+        ]
+
+    def _build_role_orm_objs(self, role: role_permission_domain.Role) -> tuple[role_permission_orm.Role, list[role_permission_orm.RolePermission]]:
 
         role_orm_obj = role_permission_orm.Role(
             id = role.id,
             name = role.name,
             created_by_id = role.created_by_id,
             tenant_id = role.tenant_id,
-            is_system_role = False
+            is_system_role = role.is_system_role
         )
 
-        permission_stmt = (
-            select(
-                role_permission_orm.Permission
-            )
-            .where(
-                role_permission_orm.Permission.id.in_(role.permission_ids)
-            )
-        )
+        role_permission_orm_objs = [
+            role_permission_orm.RolePermission(
+                role_id = role.id,
+                permission_id = permission_id
+            )   
+            for permission_id in role.permission_ids
+        ]
 
-        permission_result = await self._session.execute(permission_stmt)
-        permission_orm_objs = list(permission_result.scalars().all())
-        role_orm_obj.permissions = permission_orm_objs
+        return role_orm_obj, role_permission_orm_objs
+
+
+    async def create_role(self, role: role_permission_domain.Role) -> role_permission_domain.Role:
+
+
+        role_orm_obj, role_permission_orm_objs = self._build_role_orm_objs(role)
 
         self._session.add(role_orm_obj)
+        self._session.add_all(role_permission_orm_objs)
         await self._session.flush()
 
-        return self._to_role_domain_model(role_orm_obj=role_orm_obj)
+        return role
 
+    async def bulk_create_role(self, roles: list[role_permission_domain.Role]) -> None:
+
+        create_role_orm_objs = []
+        create_role_permission_orm_objs = []
+
+        for role in roles:
+
+            role_orm_obj, role_permission_orm_objs = self._build_role_orm_objs(role)
+            create_role_orm_objs.append(role_orm_obj)
+            create_role_permission_orm_objs.extend(role_permission_orm_objs)
+
+        self._session.add_all(create_role_orm_objs)
+        self._session.add_all(create_role_permission_orm_objs)
+        await self._session.flush()
 
 
     async def update_role(self, role: role_permission_domain.Role) -> role_permission_domain.Role | None:
@@ -253,7 +293,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
 
         await self._session.flush()
 
-        return self._to_role_domain_model(role_orm_obj)
+        return role
 
 
     async def delete_role(self, role_id: UUID) -> None:
@@ -272,8 +312,7 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
                 id = role_orm_obj.id,
                 name = role_orm_obj.name,
                 tenant_id = role_orm_obj.tenant_id,
-                is_system_role = role_orm_obj.is_system_role,
-                permission_ids = [permission.id for permission in role_orm_obj.permissions]
+                is_system_role = role_orm_obj.is_system_role
             ) 
 
     def _to_permission_domain_model(self, permission_orm_obj: role_permission_orm.Permission) -> role_permission_domain.Permission | None:
