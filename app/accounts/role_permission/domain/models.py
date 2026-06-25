@@ -33,20 +33,23 @@ class Role(BaseModel):
             raise ValueError("Duplicate permission_ids are not allowed")
         return value
 
-    @model_validator(mode="after")
-    def validate_tenant_scope(self) -> "Role":
-        if self.is_system_role and self.tenant_id is not None:
-            raise ValueError("System roles cannot be tied to a specific tenant")
-        return self
-
     @classmethod
-    def create(cls, name: str, permission_ids: list[UUID], created_by_id: UUID, tenant_id: UUID | None = None) -> "Role":
+    def create(cls, name: str, permission_ids: list[UUID], created_by_id: UUID, tenant_id: UUID | None = None, is_system_role: bool = False) -> "Role":
         return cls(
             tenant_id=tenant_id,
             name=name,
             permission_ids=permission_ids,
-            is_system_role=False,
-            created_by_id=created_by_id
+            created_by_id=created_by_id,
+            is_system_role = is_system_role
+        )
+
+    @classmethod
+    def create_default(cls, name: str, permission_ids: list[UUID], tenant_id: UUID) -> "Role":
+        return cls(
+            tenant_id=tenant_id,
+            name=name,
+            permission_ids=permission_ids,
+            is_system_role=True
         )
 
     @classmethod
@@ -56,7 +59,6 @@ class Role(BaseModel):
             tenant_id=tenant_id,
             name=name,
             permission_ids=permission_ids,
-            is_system_role=False,
             updated_by_id=updated_by_id
         )
 
