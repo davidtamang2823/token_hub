@@ -9,8 +9,10 @@ STAFF_DEFAULT_ROLE = {
 }
 
 
-TENANT_DEFAULT_ROLE = {
-    "name": ADMIN,
-    "is_system_role": True,
-    "permissions": permissions.USER_PERMISSIONS
-}
+TENANT_DEFAULT_ROLES =(
+    {
+        "name": ADMIN,
+        "is_system_role": True,
+        "permissions": permissions.USER_PERMISSIONS
+    },
+)
