@@ -5,6 +5,7 @@ from core.unit_of_work import UnitOfWork
 from core.context import CurrentUser
 from core.exceptions import NotFoundException, AlreadyExistsException, ResourceInUseError, ForbiddenException
 from core.pagination import Pagination
+from core.constants.roles import TENANT_DEFAULT_ROLES
 from accounts.role_permission.presentation import schemas
 
 class AbstractRolePermissionService(abc.ABC):
@@ -24,6 +25,9 @@ class AbstractRolePermissionService(abc.ABC):
 
     @abc.abstractmethod
     async def create_role(self, data: dict) -> schemas.RolePermissionSchema: ...
+
+    @abc.abstractmethod
+    async def create_default_roles_for_tenant(self, tenant_id: UUID) -> None: ...
 
     @abc.abstractmethod
     async def update_role(self, data: dict) -> schemas.RolePermissionSchema: ...
@@ -85,14 +89,14 @@ class RolePermissionService(AbstractRolePermissionService):
             ]
         )
 
-
     async def create_role(self, data: dict) -> schemas.RolePermissionSchema:
 
         role = role_permission_domain.Role.create(
             name = data.get("name"),
             permission_ids=data.get("permission_ids", []),
             created_by_id=self._current_user.id,
-            tenant_id=self._current_user.tenant_id
+            tenant_id=self._current_user.tenant_id,
+            is_system_role= False
         )
 
         if await self._uow.role_permission_repository.role_exists_in_tenant(role.name, role.tenant_id):
@@ -102,6 +106,25 @@ class RolePermissionService(AbstractRolePermissionService):
         permissions = await self._uow.role_permission_repository.list_permission(permission_filters={"role_id": role.id})
 
         return self._to_role_permission_schema(role=role, permissions=permissions)
+
+
+    async def create_default_roles_for_tenant(self, tenant_id: UUID) -> None:
+        
+        permissions = await self._uow.role_permission_repository.list_permission(permission_filters={"is_staff": False})
+        permission_mapping = {
+            permission.codename: permission.id
+            for permission in permissions
+        }
+        roles = [
+            role_permission_domain.Role.create_default(
+                name=default_role["name"],
+                tenant_id=tenant_id,
+                permission_ids=[permission_mapping.get(code) for code in default_role["permissions"]]
+            )
+            for default_role in TENANT_DEFAULT_ROLES
+        ]
+        await self._uow.role_permission_repository.bulk_create_role(roles)
+
 
     async def update_role(self, data: dict) -> schemas.RolePermissionSchema:
 
