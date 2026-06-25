@@ -6,6 +6,7 @@ from core.constants import permissions
 from core.pagination import Pagination, DEFAULT_PAGE, DEFAULT_PAGE_SIZE
 from core.exceptions import NotFoundException, AlreadyExistsException, ForbiddenException
 from tenants.domain.models import Tenant
+from accounts.role_permission.application.services import AbstractRolePermissionService
 
 class AbstractTenantService(abc.ABC):
 
@@ -30,8 +31,9 @@ class AbstractTenantService(abc.ABC):
 class TenantService(AbstractTenantService):
 
 
-    def __init__(self, uow: UnitOfWork, current_user: CurrentUser):
+    def __init__(self, uow: UnitOfWork, role_perm_service: AbstractRolePermissionService, current_user: CurrentUser):
         self._uow = uow
+        self._role_perm_service = role_perm_service
         self._current_user = current_user
 
     async def list_tenant(self, tenant_filters: dict, page: int, page_size: int) -> Pagination:
@@ -91,6 +93,7 @@ class TenantService(AbstractTenantService):
             raise AlreadyExistsException(f"Tenant with this code {tenant.code} already exists")
 
         tenant = await self._uow.tenant_repository.create_tenant(tenant=tenant)
+        await self._role_perm_service.create_default_roles_for_tenant(tenant_id=tenant.id)
         return tenant
 
 
