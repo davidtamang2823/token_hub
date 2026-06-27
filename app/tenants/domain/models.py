@@ -1,10 +1,8 @@
 from uuid import UUID, uuid4
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
+from core.domain import DomainModel
 
-
-class Tenant(BaseModel):
-
-    model_config = ConfigDict(str_strip_whitespace=True)
+class Tenant(DomainModel):
 
     name: str
     code: str
