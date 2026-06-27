@@ -1,0 +1,19 @@
+<!-- notifications/infrastructure/templates/base.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}TokenHub{% endblock %}</title>
+  {% block extra_css %}{% endblock %}
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f4; font-family: Arial, sans-serif;">
+  <div style="width:100%; padding:24px 0; text-align:center;">
+    <div style="max-width:600px; width:100%; margin:0 auto; background:#ffffff; border-radius:8px; text-align:left; display:inline-block;">
+      <div style="padding:32px;">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
