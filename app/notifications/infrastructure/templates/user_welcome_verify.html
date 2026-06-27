@@ -1,0 +1,22 @@
+<!-- notifications/infrastructure/templates/welcome_verify.html -->
+{% extends "base.html" %}
+
+{% block title %}Verify your TokenHub account{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* page-specific overrides — most clients (Gmail, Apple Mail) honor <style> blocks
+     fine; only Outlook desktop ignores them, which is why critical styling stays
+     inline on the elements themselves, not here */
+  .verify-btn:hover { background:#4338ca; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <h2 style="color:#1a1a1a;">Welcome to TokenHub</h2>
+  <p style="color:#555;">Confirm your email to get started.</p>
+  <a href="{{ verification_url }}" class="verify-btn"
+     style="display:inline-block; padding:12px 24px; background:#4f46e5; color:#fff; text-decoration:none; border-radius:6px;">
+    Verify Email
+  </a>
+{% endblock %}
