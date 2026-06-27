@@ -1,12 +1,9 @@
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import EmailStr
+from core.domain import DomainModel
 
-class UserVerification(BaseModel):    
-
-    model_config = ConfigDict(
-        str_strip_whitespace=True
-    )
+class UserVerification(DomainModel):
 
     first_name: str
     last_name: str
@@ -14,7 +11,7 @@ class UserVerification(BaseModel):
     password: str
     hashed_password: str | None = None
 
-class UserAuth(BaseModel):
+class UserAuth(DomainModel):
 
     id: UUID
     hashed_password: str
