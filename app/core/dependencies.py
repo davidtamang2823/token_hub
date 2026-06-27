@@ -6,11 +6,12 @@ from core.database import get_db_session
 from core.unit_of_work import UnitOfWork
 from core.context import CurrentUser
 from core.exceptions import ForbiddenException, NotFoundException
+from core.events import event_bus
 
 
 async def get_unit_of_work(session:AsyncSession = Depends(get_db_session)) -> UnitOfWork:
 
-    async with UnitOfWork(session) as uow:
+    async with UnitOfWork(session, event_bus) as uow:
         yield uow
 
 
