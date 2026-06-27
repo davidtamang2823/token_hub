@@ -29,6 +29,17 @@ class Settings(BaseSettings):
     redis_port:int
     redis_password:str
 
+    #Email settings
+    email_host: str
+    email_port: str
+    email_host_user: str
+    email_host_password: str
+    email_from: str
+    email_use_tls: bool
+    email_verification_token_expire_days: int
+
+    #Fronend settings
+    front_end_url: str
 
     @property
     def database_url(self) -> str:
