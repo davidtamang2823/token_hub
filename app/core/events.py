@@ -22,7 +22,7 @@ class EventBus:
 
     def __init__(self):
         if not hasattr(self, '_events'):
-            self._events: typing.Dict[str, typing.List[typing.Callable]] = {}
+            self._events: dict[str, list[typing.Callable]] = {}
 
     def subscribe(self, event_type: str):
 
@@ -34,11 +34,11 @@ class EventBus:
 
         return add_event
 
-    def publish(self, events: typing.List):
+    def publish(self, events: list[BaseEvent]):
         for event in events:
             event_callables = self._events.get(event.event_type, [])
             for event_callable in event_callables:
-                event_callable()
+                event_callable(event)
 
 
 class EventTypes:
@@ -53,11 +53,11 @@ class EventTypes:
     USER_REGISTERED = "user.registered"
     USER_BLOCKED = "user.blocked"
     USER_UNBLOCKED = "user.unblocked"
+    USER_ADDED_TO_TENANT = "user.user_added_to_tenant"
+    USER_REMOVED_FROM_TENANT = "tenant.user_removed_from_tenant"
 
     # tenant events
     TENANT_CREATED = "tenant.created"
-    TENANT_USER_ADDED = "tenant.user_added"
-    TENANT_USER_REMOVED = "tenant.user_removed"
     TENANT_USER_ROLE_CHANGED = "tenant.user_role_changed"
 
 
