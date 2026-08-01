@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
 
     #App settings
+    app_name: str
     secret_key: str
 
     #Database settings
