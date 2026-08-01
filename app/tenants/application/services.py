@@ -7,6 +7,7 @@ from core.pagination import Pagination, DEFAULT_PAGE, DEFAULT_PAGE_SIZE
 from core.exceptions import NotFoundException, AlreadyExistsException, ForbiddenException
 from tenants.domain.models import Tenant
 from accounts.role_permission.application.services import AbstractRolePermissionService
+from accounts.role_permission.application.policies import TenantAccessPolicy
 
 class AbstractTenantService(abc.ABC):
 
@@ -31,10 +32,11 @@ class AbstractTenantService(abc.ABC):
 class TenantService(AbstractTenantService):
 
 
-    def __init__(self, uow: UnitOfWork, role_perm_service: AbstractRolePermissionService, current_user: CurrentUser):
+    def __init__(self, uow: UnitOfWork, role_perm_service: AbstractRolePermissionService, tenant_access_policy: TenantAccessPolicy, current_user: CurrentUser):
         self._uow = uow
         self._role_perm_service = role_perm_service
         self._current_user = current_user
+        self._tenant_access_policy = tenant_access_policy
 
     async def list_tenant(self, tenant_filters: dict, page: int, page_size: int) -> Pagination:
 
@@ -59,14 +61,7 @@ class TenantService(AbstractTenantService):
 
     async def retrieve_tenant(self, tenant_id: UUID) -> Tenant:
         
-        
-        is_user_exists_in_tenant = await self._uow.user_repository.exists_in_tenant(
-            user_id=self._current_user.id, 
-            tenant_id=tenant_id
-        )
-
-        if permissions.CAN_VIEW_ALL_TENANT not in  self._current_user.permissions and not is_user_exists_in_tenant:
-            raise ForbiddenException("User not assigned to this tenant")
+        self._tenant_access_policy.ensure_user_in_tenant(tenant_id=tenant_id)
 
 
         tenant = await self._uow.tenant_repository.get_tenant_by_id(
@@ -101,13 +96,7 @@ class TenantService(AbstractTenantService):
 
         tenant_id = data.get("id")
 
-        if permissions.CAN_VIEW_ALL_TENANT not in  self._current_user.permissions:
-            is_user_exists_in_tenant = await self._uow.user_repository.exists_in_tenant(
-                user_id=self._current_user.id,
-                tenant_id=tenant_id
-            )
-            if not is_user_exists_in_tenant:
-                raise ForbiddenException("User not assigned to this tenant")
+        self._tenant_access_policy.ensure_user_in_tenant(tenant_id=tenant_id)
 
         if not await self._uow.tenant_repository.tenant_id_exists(tenant_id=tenant_id):
             raise NotFoundException(f"Tenant with id {tenant_id} not found")
@@ -130,13 +119,7 @@ class TenantService(AbstractTenantService):
 
     async def delete_tenant(self, tenant_id: UUID) -> None:
 
-
-        is_user_exists_in_tenant = await self._uow.user_repository.exists_in_tenant(
-            user_id=self._current_user.id, 
-            tenant_id=tenant_id
-        )
-        if not is_user_exists_in_tenant:
-            raise ForbiddenException("User not assigned to this tenant")
+        self._tenant_access_policy.ensure_user_in_tenant(tenant_id=tenant_id)
 
         if not await self._uow.tenant_repository.tenant_id_exists(tenant_id=tenant_id):
             raise NotFoundException(f"Tenant with id {tenant_id} not found")
