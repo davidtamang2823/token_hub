@@ -1,9 +1,11 @@
+from dataclasses import dataclass
 from core.events import BaseEvent, EventTypes
 
 
+@dataclass
 class UserRegistered(BaseEvent):
 
-    email: str
+    send_to: str
     verification_token: str
 
     def __post_init__(self):
@@ -11,9 +13,10 @@ class UserRegistered(BaseEvent):
         self.event_type = EventTypes.USER_REGISTERED
 
 
+@dataclass
 class UserAddedToTenant(BaseEvent):
 
-    email: str
+    send_to: str
     tenant_name: str
     tenant_code: str
 
