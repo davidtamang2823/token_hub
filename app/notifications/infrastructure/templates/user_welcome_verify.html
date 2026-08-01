@@ -13,9 +13,9 @@
 {% endblock %}
 
 {% block content %}
-  <h2 style="color:#1a1a1a;">Welcome to TokenHub</h2>
+  <h2 style="color:#1a1a1a;">Welcome to {{app_name}}</h2>
   <p style="color:#555;">Confirm your email to get started.</p>
-  <a href="{{ verification_url }}" class="verify-btn"
+  <a href="{{user_verification_url}}" class="verify-btn"
      style="display:inline-block; padding:12px 24px; background:#4f46e5; color:#fff; text-decoration:none; border-radius:6px;">
     Verify Email
   </a>
