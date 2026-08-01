@@ -1,5 +1,5 @@
 import typing
-from datetime import datetime, timezone
+from datetime import datetime, timezone, asdict
 from uuid import UUID, uuid4
 from dataclasses import dataclass, field
 
@@ -10,6 +10,11 @@ class BaseEvent:
     created_at: datetime = field(default=lambda : datetime.now(timezone.utc))
     event_type: str = field(init=False)
 
+    def to_dict(self) -> dict:
+        data = asdict(self)
+        data["occurred_at"] = self.occurred_at.isoformat()
+        data["event_type"] = self.event_type.value  # if EventTypes is an Enum
+        return data
 
 class EventBus:
 
