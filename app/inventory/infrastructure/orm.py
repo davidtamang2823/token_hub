@@ -1,9 +1,9 @@
 from decimal import Decimal
 from sqlalchemy import Numeric, Boolean, String, Index
 from sqlalchemy.orm import mapped_column, Mapped
-from core.database import TenantAuditModel
+from core.database import TenantAuditModelORM
 
-class Item(TenantAuditModel):
+class ItemORM(TenantAuditModelORM):
 
     __tablename__ = "items"
 

@@ -11,11 +11,11 @@ class AbstractUserAuthRpository(abc.ABC):
 
 
     @abc.abstractmethod
-    async def get_user_auth_by_email(self, email: str) -> auth_domain.UserAuth | None:
+    async def get_user_auth_by_email(self, email: str) -> auth_domain.UserAuthModel | None:
         ...
 
     @abc.abstractmethod
-    async def get_user_auth_by_verification_token(self, verification_token: str) -> auth_domain.UserAuth | None:
+    async def get_user_auth_by_verification_token(self, verification_token: str) -> auth_domain.UserAuthModel | None:
         ...
 
 
@@ -26,30 +26,30 @@ class UserAuthRepository(AbstractUserAuthRpository):
         self._session = session
 
 
-    async def get_user_auth_by_email(self, email: str) -> auth_domain.UserAuth | None:
+    async def get_user_auth_by_email(self, email: str) -> auth_domain.UserAuthModel | None:
 
         stmt = (
             select(
-                user_orm.User.id, 
-                user_orm.User.password, 
-                user_orm.User.is_active, 
-                user_orm.User.is_staff,
-                user_orm.User.verified_at
-            ).where(user_orm.User.email == email)
+                user_orm.UserORM.id, 
+                user_orm.UserORM.password, 
+                user_orm.UserORM.is_active, 
+                user_orm.UserORM.is_staff,
+                user_orm.UserORM.verified_at
+            ).where(user_orm.UserORM.email == email)
         )
         result = await self._session.execute(stmt)
         user_orm_obj = result.one_or_none()
         return self._to_user_auth_domain(user_orm_obj)
 
-    async def get_user_auth_by_verification_token(self, verification_token: str) -> auth_domain.UserAuth | None:
+    async def get_user_auth_by_verification_token(self, verification_token: str) -> auth_domain.UserAuthModel | None:
         ...
 
 
-    def _to_user_auth_domain(self, user_orm_obj: user_orm.User) -> auth_domain.UserAuth | None:
+    def _to_user_auth_domain(self, user_orm_obj: user_orm.UserORM) -> auth_domain.UserAuthModel | None:
         if not user_orm_obj:
             return None
 
-        return auth_domain.UserAuth(
+        return auth_domain.UserAuthModel(
             id=user_orm_obj.id,
             hashed_password=user_orm_obj.password,
             is_active=user_orm_obj.is_active,

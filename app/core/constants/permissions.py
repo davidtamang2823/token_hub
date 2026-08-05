@@ -30,7 +30,7 @@ CAN_CREATE_BILL = "can_create_bill"
 
 CAN_ADD_USER_TO_TENANT = "can_add_user_to_tenant"
 CAN_REMOVE_USER_FROM_TENANT = "can_remove_user_from_tenant"
-
+CAN_UPDATE_USER_EMAIL = "can_update_user_email" 
 
 # These are only assignable to system-level roles (tenant_id = NULL).
 
@@ -56,6 +56,7 @@ USER_PERMISSIONS: frozenset[str] = frozenset({
     CAN_DELETE_ORDER,
     
     CAN_UPDATE_USER,
+    CAN_UPDATE_USER_EMAIL,
     CAN_VIEW_USER,
 
     CAN_VIEW_ROLE,
@@ -79,6 +80,7 @@ STAFF_USER_PERMISSIONS: frozenset[str] = frozenset({
     CAN_DELETE_TENANT,
 
     CAN_UPDATE_USER,
+    CAN_UPDATE_USER_EMAIL,
     CAN_VIEW_USER,
 
     CAN_REMOVE_USER_FROM_TENANT,
@@ -133,6 +135,11 @@ ALL_PERMISSION_DETAILS: frozenset[Permission] = frozenset(
             name="Can update user",
             description="Allows updating existing users within the tenant",
             codename=CAN_UPDATE_USER,
+        ),
+        Permission(
+            name="Can update user email",
+            description="Allows updating existing users email within the tenant",
+            codename=CAN_UPDATE_USER_EMAIL,
         ),
         Permission(
             name="Can view user",

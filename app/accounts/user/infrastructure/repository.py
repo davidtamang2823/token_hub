@@ -12,11 +12,11 @@ class AbstractUserRepository(abc.ABC):
 
 
     @abc.abstractmethod
-    async def get_by_id(self, user_id: UUID) -> user_domain.User | None:
+    async def get_by_id(self, user_id: UUID) -> user_domain.UserModel | None:
         ...
 
     @abc.abstractmethod
-    async def get_by_email(self, email: str) -> user_domain.User | None:
+    async def get_by_email(self, email: str) -> user_domain.UserModel | None:
         ...
 
     @abc.abstractmethod
@@ -24,7 +24,7 @@ class AbstractUserRepository(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def list_user(self, user_filters: dict, limit: int, offset: int) -> list[user_domain.User]:
+    async def list_user(self, user_filters: dict, limit: int, offset: int) -> list[user_domain.UserModel]:
         ...
 
     @abc.abstractmethod
@@ -46,10 +46,10 @@ class AbstractUserRepository(abc.ABC):
     async def role_already_assigned_to_user(self, role_id: UUID) -> bool: ...
 
     @abc.abstractmethod
-    async def create_user(self, user: user_domain.User) -> user_domain.User: ...
+    async def create_user(self, user: user_domain.UserModel) -> user_domain.UserModel: ...
 
     @abc.abstractmethod
-    async def add_user_to_tenant(self, user_tenant: user_domain.UserTenant) -> None: ...
+    async def add_user_to_tenant(self, user_tenant: user_domain.UserTenantModel) -> None: ...
 
 
     @abc.abstractmethod
@@ -63,10 +63,10 @@ class UserRepository(AbstractUserRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_by_id(self, user_id: UUID) -> user_domain.User | None:
+    async def get_by_id(self, user_id: UUID) -> user_domain.UserModel | None:
         stmt = (
-            select(user_orm.User)
-            .where(user_orm.User.id == user_id)
+            select(user_orm.UserORM)
+            .where(user_orm.UserORM.id == user_id)
         )
         result = await self._session.execute(stmt)
         user_orm_obj = result.scalar_one_or_none()
@@ -77,20 +77,20 @@ class UserRepository(AbstractUserRepository):
 
         stmt = (
             select(
-                user_orm.User.id,
-                user_orm.User.first_name,
-                user_orm.User.last_name,
-                user_orm.User.email,
-                user_orm.User.is_active,
-                user_orm.User.is_staff,
-                user_orm.UserTenant.role_id,
+                user_orm.UserORM.id,
+                user_orm.UserORM.first_name,
+                user_orm.UserORM.last_name,
+                user_orm.UserORM.email,
+                user_orm.UserORM.is_active,
+                user_orm.UserORM.is_staff,
+                user_orm.UserTenantORM.role_id,
                 role_permission_orm.Role.name.label("role_name"),
-                user_orm.User.verified_at
+                user_orm.UserORM.verified_at
             )
-            .join(user_orm.UserTenant, user_orm.User.id == user_orm.UserTenant.user_id)
-            .join(role_permission_orm.Role, user_orm.UserTenant.role_id == role_permission_orm.Role.id)
-            .where(user_orm.UserTenant.tenant_id == tenant_id)
-            .where(user_orm.User.id == user_id)
+            .join(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
+            .join(role_permission_orm.Role, user_orm.UserTenantORM.role_id == role_permission_orm.Role.id)
+            .where(user_orm.UserTenantORM.tenant_id == tenant_id)
+            .where(user_orm.UserORM.id == user_id)
         )
         result = await self._session.execute(stmt)
         user_orm_obj = result.scalar_one_or_none()
@@ -108,10 +108,10 @@ class UserRepository(AbstractUserRepository):
             ) if user_orm_obj else None
         )
 
-    async def get_by_email(self, email: str) -> user_domain.User | None:
+    async def get_by_email(self, email: str) -> user_domain.UserModel | None:
         stmt = (
-            select(user_orm.User)
-            .where(user_orm.User.email == email)
+            select(user_orm.UserORM)
+            .where(user_orm.UserORM.email == email)
         )
         result = await self._session.execute(stmt)
         user_orm_obj = result.scalar_one_or_none()
@@ -127,33 +127,33 @@ class UserRepository(AbstractUserRepository):
 
         stmt = (
             select(
-                user_orm.User.id,
-                user_orm.User.first_name,
-                user_orm.User.last_name,
-                user_orm.User.email,
-                user_orm.User.is_active,
-                user_orm.User.is_staff,
-                user_orm.UserTenant.role_id,
+                user_orm.UserORM.id,
+                user_orm.UserORM.first_name,
+                user_orm.UserORM.last_name,
+                user_orm.UserORM.email,
+                user_orm.UserORM.is_active,
+                user_orm.UserORM.is_staff,
+                user_orm.UserTenantORM.role_id,
                 role_permission_orm.Role.name.label("role_name"),
-                user_orm.User.verified_at
+                user_orm.UserORM.verified_at
             )
-            .join(user_orm.UserTenant, user_orm.User.id == user_orm.UserTenant.user_id)
-            .join(role_permission_orm.Role, user_orm.UserTenant.role_id == role_permission_orm.Role.id)
-            .where(user_orm.UserTenant.tenant_id == tenant_id)
+            .join(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
+            .join(role_permission_orm.Role, user_orm.UserTenantORM.role_id == role_permission_orm.Role.id)
+            .where(user_orm.UserTenantORM.tenant_id == tenant_id)
         )
 
         if is_staff is not None:
-            stmt = stmt.where(user_orm.User.is_staff == is_staff)
+            stmt = stmt.where(user_orm.UserORM.is_staff == is_staff)
 
         if is_active is not None:
-            stmt = stmt.where(user_orm.User.is_active == is_active)
+            stmt = stmt.where(user_orm.UserORM.is_active == is_active)
 
         if search_key:
             stmt = stmt.where(
                 or_(
-                    user_orm.User.first_name.istartswith(search_key),
-                    user_orm.User.last_name.istartswith(search_key),
-                    user_orm.User.email.istartswith(search_key)
+                    user_orm.UserORM.first_name.istartswith(search_key),
+                    user_orm.UserORM.last_name.istartswith(search_key),
+                    user_orm.UserORM.email.istartswith(search_key)
                 )
             )
 
@@ -162,7 +162,7 @@ class UserRepository(AbstractUserRepository):
         )
         total = (await self._session.execute(total_count_stmt)).scalar()
 
-        stmt = stmt.order_by(user_orm.User.first_name, user_orm.User.last_name, user_orm.User.email).distinct().offset(offset).limit(limit)
+        stmt = stmt.order_by(user_orm.UserORM.first_name, user_orm.UserORM.last_name, user_orm.UserORM.email).distinct().offset(offset).limit(limit)
 
         result = await self._session.execute(stmt)
 
@@ -190,7 +190,7 @@ class UserRepository(AbstractUserRepository):
         stmt = (
             select(
                 exists()
-                .where(user_orm.User.email == email)
+                .where(user_orm.UserORM.email == email)
             )
         )
         result = await self._session.execute(stmt)
@@ -200,8 +200,8 @@ class UserRepository(AbstractUserRepository):
         stmt = select(
             exists()
             .where(
-                user_orm.UserTenant.user_id == user_id,
-                user_orm.UserTenant.tenant_id == tenant_id
+                user_orm.UserTenantORM.user_id == user_id,
+                user_orm.UserTenantORM.tenant_id == tenant_id
             )
         )
         result = await self._session.execute(stmt)
@@ -213,8 +213,8 @@ class UserRepository(AbstractUserRepository):
             select(
                 exists()
                 .where(
-                    user_orm.UserTenant.tenant_id == tenant_id,
-                    user_orm.UserTenant.role_id == role_id
+                    user_orm.UserTenantORM.tenant_id == tenant_id,
+                    user_orm.UserTenantORM.role_id == role_id
                 )
             )
         )
@@ -227,16 +227,16 @@ class UserRepository(AbstractUserRepository):
         stmt = select(
             exists()
             .where(
-                user_orm.UserTenant.role_id == role_id
+                user_orm.UserTenantORM.role_id == role_id
             )
         )
         result = await self._session.execute(stmt)
         return result.scalar()
 
 
-    async def create_user(self, user: user_domain.User) -> user_domain.User:
+    async def create_user(self, user: user_domain.UserModel) -> user_domain.UserModel:
 
-        user_orm_obj = user_orm.User(
+        user_orm_obj = user_orm.UserORM(
             id = user.id,
             first_name = user.first_name,
             last_name = user.last_name,
@@ -252,9 +252,9 @@ class UserRepository(AbstractUserRepository):
         return self._to_user_domain(user_orm_obj=user_orm_obj)
 
 
-    async def add_user_to_tenant(self, user_tenant: user_domain.UserTenant) -> None:
+    async def add_user_to_tenant(self, user_tenant: user_domain.UserTenantModel) -> None:
 
-        user_tenant_orm_obj = user_orm.UserTenant(
+        user_tenant_orm_obj = user_orm.UserTenantORM(
             user_id = user_tenant.user_id,
             role_id = user_tenant.role_id,
             created_by_id = user_tenant.created_by_id
@@ -265,8 +265,8 @@ class UserRepository(AbstractUserRepository):
     async def update_user_profile(self, user_id: UUID, first_name: str, last_name: str) -> None:
 
         stmt = (
-            update(user_orm.User)
-            .where(user_orm.User.id == user_id)
+            update(user_orm.UserORM)
+            .where(user_orm.UserORM.id == user_id)
             .values(first_name=first_name, last_name=last_name)
         )
         await self._session.execute(stmt)
@@ -274,17 +274,17 @@ class UserRepository(AbstractUserRepository):
     async def remove_user_from_tenant(self, user_id: UUID, tenant_id: UUID) -> None:
 
         stmt = (
-            delete(user_orm.UserTenant)
-            .where(user_orm.UserTenant.user_id == user_id, user_orm.UserTenant.tenant_id == tenant_id)
+            delete(user_orm.UserTenantORM)
+            .where(user_orm.UserTenantORM.user_id == user_id, user_orm.UserTenantORM.tenant_id == tenant_id)
         )
 
         await self._session.execute(stmt)
 
-    def _to_user_domain(self, user_orm_obj: user_orm.User) -> user_domain.User | None:
+    def _to_user_domain(self, user_orm_obj: user_orm.UserORM) -> user_domain.UserModel | None:
         if not user_orm_obj:
             return None
 
-        return user_domain.User(
+        return user_domain.UserModel(
             id=user_orm_obj.id,
             first_name=user_orm_obj.first_name,
             last_name=user_orm_obj.last_name,

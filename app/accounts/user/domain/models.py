@@ -6,7 +6,7 @@ from core.events import BaseEvent
 from core.domain import AggregateRoot
 
 
-class User(AggregateRoot):
+class UserModel(AggregateRoot):
 
     first_name: str
     last_name: str
@@ -65,7 +65,7 @@ class User(AggregateRoot):
             ]
         )
 
-class UserTenant(AggregateRoot):
+class UserTenantModel(AggregateRoot):
 
     email: EmailStr
     tenant_id: UUID

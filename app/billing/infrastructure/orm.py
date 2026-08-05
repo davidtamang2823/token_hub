@@ -2,9 +2,8 @@ from uuid import UUID
 from decimal import Decimal
 from sqlalchemy import String, Numeric, ForeignKey, Index
 from sqlalchemy.orm import mapped_column, Mapped
-from core.database import TenantAuditModel
-
-class Bill(TenantAuditModel):
+from core.database import TenantAuditModelORM
+class BillORM(TenantAuditModelORM):
 
     __tablename__ = "bills"
 

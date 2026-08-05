@@ -17,7 +17,7 @@ class User:
     role_name: str
     verified_at: datetime
 
-class UpdateUserName(DomainModel):
+class UpdateUserNameDTO(DomainModel):
 
     first_name: str
     last_name: str
@@ -45,12 +45,12 @@ class UpdateUserName(DomainModel):
     def create(cls, first_name: str, last_name: str) -> "UpdateProfile":
         return cls(id=id, first_name=first_name, last_name=last_name)
 
-class UpdateUserEmail(DomainModel):
+class UpdateUserEmailDTO(DomainModel):
 
     user_id: UUID
     email: EmailStr
 
-class UpdateUserStatus(DomainModel):
+class UpdateUserStatusDTO(DomainModel):
 
     user_id: UUID
     is_active: bool

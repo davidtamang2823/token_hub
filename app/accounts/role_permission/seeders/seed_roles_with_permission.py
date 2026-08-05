@@ -3,20 +3,20 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from core.database import AsyncSessionLocal
 from core.constants.roles import STAFF_DEFAULT_ROLE
-from accounts.role_permission.infrastructure.orm import Role, RolePermission, Permission
+from accounts.role_permission.infrastructure.orm import RoleORM, RolePermissionORM, PermissionORM
 
 
 async def seed_roles_with_permission():
     async with AsyncSessionLocal() as session:
         try:
-            stmt = select(Role).where(
-                Role.name == STAFF_DEFAULT_ROLE["name"],
-                Role.tenant_id.is_(None),
-            ).options(selectinload(Role.permissions))
+            stmt = select(RoleORM).where(
+                RoleORM.name == STAFF_DEFAULT_ROLE["name"],
+                RoleORM.tenant_id.is_(None),
+            ).options(selectinload(RoleORM.permissions))
             result = await session.execute(stmt)
             existing_role = result.scalar_one_or_none()
 
-            stmt = select(Permission).where(Permission.codename.in_(STAFF_DEFAULT_ROLE["permissions"]))
+            stmt = select(PermissionORM).where(PermissionORM.codename.in_(STAFF_DEFAULT_ROLE["permissions"]))
             result = await session.execute(stmt)
             permission_orm_objs = list(result.scalars().all())
 

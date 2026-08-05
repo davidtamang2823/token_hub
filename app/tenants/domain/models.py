@@ -2,7 +2,7 @@ from uuid import UUID, uuid4
 from pydantic import ConfigDict, Field, field_validator
 from core.domain import DomainModel
 
-class Tenant(DomainModel):
+class TenantModel(DomainModel):
 
     name: str
     code: str

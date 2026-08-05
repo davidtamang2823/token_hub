@@ -5,19 +5,19 @@ from pathlib import Path
 from sqlalchemy import select
 from core.database import AsyncSessionLocal
 from core.constants.permissions import ALL_PERMISSION_DETAILS
-from accounts.role_permission.infrastructure.orm import Permission
+from accounts.role_permission.infrastructure.orm import PermissionORM
 
 async def seed_permissions():
     async with AsyncSessionLocal() as session:
         try:
-            stmt = select(Permission.codename)
+            stmt = select(PermissionORM.codename)
             result = await session.execute(stmt)
             existing_permissions = result.scalars().all()
             new_permissions_to_create = []
             for permission in ALL_PERMISSION_DETAILS:
                 if permission.codename not in existing_permissions:               
                     new_permissions_to_create.append(
-                        Permission(
+                        PermissionORM(
                             codename=permission.codename,
                             name=permission.name,
                             description=permission.description

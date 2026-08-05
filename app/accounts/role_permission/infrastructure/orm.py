@@ -4,9 +4,9 @@ from sqlalchemy import ForeignKey, UniqueConstraint, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
-from core.database import NullableAuditModel, Base, TenantNullableAuditModel
+from core.database import NullableAuditModelORM, BaseORM, TenantNullableAuditModelORM
 
-class Role(TenantNullableAuditModel):
+class RoleORM(TenantNullableAuditModelORM):
 
     __tablename__ = "roles"
 
@@ -17,9 +17,9 @@ class Role(TenantNullableAuditModel):
 
     name: Mapped[str] = mapped_column(String(75))
     is_system_role: Mapped[bool] = mapped_column(default=False)
-    permissions: Mapped[typing.List["Permission"]] = relationship(secondary="role_permissions", back_populates="roles")
+    permissions: Mapped[typing.List["PermissionORM"]] = relationship(secondary="role_permissions", back_populates="roles")
 
-class Permission(NullableAuditModel):
+class PermissionORM(NullableAuditModelORM):
 
     __tablename__ = "permissions"
 
@@ -27,11 +27,10 @@ class Permission(NullableAuditModel):
     codename: Mapped[str] = mapped_column(String(75), unique=True)
     name: Mapped[str] = mapped_column(String(75), unique=True)
     description: Mapped[str] = mapped_column(String(500))
-    roles: Mapped[typing.List["Role"]] = relationship(secondary="role_permissions", back_populates="permissions")
+    roles: Mapped[typing.List["RoleORM"]] = relationship(secondary="role_permissions", back_populates="permissions")
 
 
-class RolePermission(Base):
-
+class RolePermissionORM(BaseORM):
     __tablename__ = "role_permissions"
 
     __table_args__ = (

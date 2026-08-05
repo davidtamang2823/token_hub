@@ -1,9 +1,9 @@
 import typing
-from datetime import datetime, timezone, asdict
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 
-@dataclass
+@dataclass(kw_only=True)
 class BaseEvent:
 
     event_id: UUID = field(default_factory=uuid4)

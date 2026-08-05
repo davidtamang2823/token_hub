@@ -30,38 +30,38 @@ convention = {
 }
 
 
-class Base(DeclarativeBase):
+class BaseORM(DeclarativeBase):
 
     metadata = MetaData(naming_convention=convention)
 
-class BaseModel(Base):
+class BaseModelORM(BaseORM):
 
     __abstract__ = True
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now(), default=func.now())
 
-class AuditModel(BaseModel):
+class AuditModelORM(BaseModelORM):
 
     __abstract__ = True
 
-    created_by_id: Mapped[datetime] = mapped_column(ForeignKey("users.id"))
-    updated_by_id: Mapped[datetime | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
+    created_by_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    updated_by_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
 
 
-class NullableAuditModel(BaseModel):
+class NullableAuditModelORM(BaseModelORM):
     __abstract__ = True
 
     created_by_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
     updated_by_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
 
-class TenantAuditModel(AuditModel):
+class TenantAuditModelORM(AuditModelORM):
 
     __abstract__ = True
 
     tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id"))
 
-class TenantNullableAuditModel(NullableAuditModel):
+class TenantNullableAuditModelORM(NullableAuditModelORM):
     __abstract__ = True
 
     tenant_id: Mapped[UUID | None] = mapped_column(ForeignKey("tenants.id"), nullable=True)

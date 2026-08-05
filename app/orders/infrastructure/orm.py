@@ -4,9 +4,9 @@ from decimal import Decimal
 from sqlalchemy import ForeignKey, Index, DateTime
 from sqlalchemy import Numeric, Boolean, SmallInteger
 from sqlalchemy.orm import mapped_column, Mapped
-from core.database import TenantAuditModel
+from core.database import TenantAuditModelORM
 
-class Order(TenantAuditModel):
+class OrderORM(TenantAuditModelORM):
 
     __tablename__ = "orders"
 

@@ -14,6 +14,7 @@ from core.constants.permissions import (
 from accounts.role_permission.presentation.dependencies import get_role_permission_service
 from accounts.role_permission.application.services import AbstractRolePermissionService
 from accounts.role_permission.presentation.schemas import RolePermissionSchema, ListPermissionSchema, ListRoleOptionSchema
+from accounts.role_permission.domain import models as role_permission_domain
 
 router = APIRouter(
     prefix="",
@@ -26,6 +27,24 @@ admin_router = APIRouter(
 )
 
 
+
+def to_role_permission_schema(role: role_permission_domain.RoleModel, permissions: role_permission_domain.PermissionModel) -> RolePermissionSchema:
+
+    return schemas.RolePermissionSchema(
+        id = role.id,
+        name = role.name,
+        is_system_role = role.is_system_role,
+        permissions = [
+            schemas.Permission(
+                id = permission.id,
+                codename = permission.codename,
+                name = permission.name,
+                description = permission.description
+            ) for permission in permissions
+        ]
+    )
+
+
 @router.get("/roles/me", response_model=RolePermissionSchema)
 @admin_router.get("/roles/me", response_model=RolePermissionSchema)
 async def retrieve_own_role(
@@ -33,7 +52,8 @@ async def retrieve_own_role(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     role_permission_service: Annotated[AbstractRolePermissionService, Depends(get_role_permission_service)],
 ):
-    return await role_permission_service.retrieve_role(role_id=current_user.role_id)
+    role, permissions = await role_permission_service.retrieve_role(role_id=current_user.role_id)
+    return to_role_permission_schema(role, permissions)
 
 
 @router.get("/roles/{role_id}", dependencies=[Depends(require_permission([CAN_VIEW_ROLE, CAN_UPDATE_ROLE]))], response_model=RolePermissionSchema)
@@ -43,8 +63,8 @@ async def retrieve_role(
     role_id: UUID, 
     role_permission_service: Annotated[AbstractRolePermissionService, Depends(get_role_permission_service)]
 ):
-    return await role_permission_service.retrieve_role(role_id=role_id)
-
+    role, permissions = await role_permission_service.retrieve_role(role_id=role_id)
+    return to_role_permission_schema(role, permissions)
 
 @router.get("/roles", dependencies=[Depends(require_permission([CAN_VIEW_ROLE]))], response_model=Pagination)
 @admin_router.get("/roles", dependencies=[Depends(require_permission([CAN_VIEW_ROLE]))], response_model=Pagination)
@@ -70,7 +90,8 @@ async def list_role_option(
     page_size: int = 100, 
 ): 
 
-    return await role_permission_service.list_role_option(page=page, page_size=page_size, tenant_id=tenant_id)
+    roles =  await role_permission_service.list_role_option(page=page, page_size=page_size, tenant_id=tenant_id)
+    return ListRoleOptionSchema(roles=[schemas.RoleOption.model_validate(role) for role in roles])
 
 
 @router.get("/permissions", dependencies=[Depends(require_permission([CAN_CREATE_ROLE, CAN_UPDATE_ROLE]))], response_model=ListPermissionSchema)
@@ -81,7 +102,8 @@ async def list_permission(
     q: str | None = None
 ):
     permission_filters = {"q": q}
-    return await role_permission_service.list_permission(permission_filters=permission_filters)
+    permissions = await role_permission_service.list_permission(permission_filters=permission_filters)
+    return ListPermissionSchema(permissions=[schemas.Permission.model_validate(permission) for permission in permissions])
 
 @router.post("/roles", dependencies=[Depends(require_permission([CAN_CREATE_ROLE]))], response_model=RolePermissionSchema)
 @admin_router.post("/roles", dependencies=[Depends(require_permission([CAN_CREATE_ROLE]))], response_model=RolePermissionSchema)
@@ -90,7 +112,8 @@ async def create_role(
     role_permission_service: Annotated[AbstractRolePermissionService, Depends(get_role_permission_service)]
 ):
     request_data = await request.json()
-    return await role_permission_service.create_role(data=request_data)
+    role, permissions = await role_permission_service.create_role(data=request_data)
+    return to_role_permission_schema(role, permissions)
 
 
 @router.put("/roles/{role_id}", dependencies=[Depends(require_permission([CAN_UPDATE_ROLE]))], response_model=RolePermissionSchema)
@@ -102,8 +125,8 @@ async def update_role(
 ):
     request_data = await request.json()
     request_data["id"] = role_id
-    return await role_permission_service.update_role(data=request_data)
-
+    role, permissions =  await role_permission_service.update_role(data=request_data)
+    return to_role_permission_schema(role, permissions)
 
 @router.delete("/roles/{role_id}", dependencies=[Depends(require_permission([CAN_DELETE_ROLE]))])
 @admin_router.delete("/roles/{role_id}", dependencies=[Depends(require_permission([CAN_DELETE_ROLE]))])

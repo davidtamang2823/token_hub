@@ -6,31 +6,30 @@ from core.context import CurrentUser
 from core.exceptions import NotFoundException, AlreadyExistsException, ResourceInUseError, ForbiddenException
 from core.pagination import Pagination
 from core.constants.roles import TENANT_DEFAULT_ROLES
-from accounts.role_permission.presentation import schemas
 
 class AbstractRolePermissionService(abc.ABC):
 
 
     @abc.abstractmethod
-    async def retrieve_role(self, role_id: UUID) -> schemas.RolePermissionSchema: ...
+    async def retrieve_role(self, role_id: UUID) -> tuple[role_permission_domain.RoleModel, list[role_permission_domain.PermissionModel]]: ...
 
     @abc.abstractmethod
     async def list_role(self, role_filters: dict, page: int, page_size: int)  -> Pagination: ...
 
     @abc.abstractmethod
-    async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> schemas.ListRoleOptionSchema: ...
+    async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> list[role_permission_domain.RoleModel]: ...
 
     @abc.abstractmethod
-    async def list_permission(self, permission_filters: dict) -> schemas.ListPermissionSchema: ...
+    async def list_permission(self, permission_filters: dict) -> list[role_permission_domain.PermissionModel]: ...
 
     @abc.abstractmethod
-    async def create_role(self, data: dict) -> schemas.RolePermissionSchema: ...
+    async def create_role(self, data: dict) -> tuple[role_permission_domain.RoleModel, list[role_permission_domain.PermissionModel]]: ...
 
     @abc.abstractmethod
     async def create_default_roles_for_tenant(self, tenant_id: UUID) -> None: ...
 
     @abc.abstractmethod
-    async def update_role(self, data: dict) -> schemas.RolePermissionSchema: ...
+    async def update_role(self, data: dict) -> tuple[role_permission_domain.RoleModel, list[role_permission_domain.PermissionModel]]: ...
 
     @abc.abstractmethod
     async def delete_role(self, role_id: UUID) -> None: ...
@@ -43,7 +42,7 @@ class RolePermissionService(AbstractRolePermissionService):
         self._uow = uow
         self._current_user = current_user
 
-    async def retrieve_role(self, role_id: UUID) -> tuple[role_permission_domain.Role, list[role_permission_domain.Permission]]:
+    async def retrieve_role(self, role_id: UUID) -> tuple[role_permission_domain.RoleModel, list[role_permission_domain.PermissionModel]]:
 
         role = await self._uow.role_permission_repository.get_role_by_id(role_id=role_id, tenant_id=self._current_user.tenant_id)
         if not role:
@@ -53,7 +52,7 @@ class RolePermissionService(AbstractRolePermissionService):
             "role_id": role_id
         }
         permissions = await self._uow.role_permission_repository.list_permission(permission_filters=permission_filters)
-        return self._to_role_permission_schema(role=role, permissions=permissions)
+        return role, permissions
         
 
     async def list_role(self, role_filters: dict, page: int, page_size: int)  -> Pagination:
@@ -66,32 +65,28 @@ class RolePermissionService(AbstractRolePermissionService):
             page=page,
             page_size=page_size,
             total=total,
-            data=[schemas.Role.model_validate(role) for role in roles]
+            data=roles
         )
 
-    async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> schemas.ListRoleOptionSchema:
+    async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> list[role_permission_domain.RoleModel]:
 
         role_filters = {"tenant_id": tenant_id}
         offset = (page - 1) * page_size
         roles = await self._uow.role_permission_repository.list_role(role_filters, offset, page_size)
-        return schemas.ListRoleOptionSchema(roles=[schemas.RoleOption.model_validate(role) for role in roles])
+        return roles
 
 
-    async def list_permission(self, permission_filters: dict) -> schemas.ListPermissionSchema:
+    async def list_permission(self, permission_filters: dict) -> list[role_permission_domain.PermissionModel]:
         
         if not permission_filters.get("role_id"):
             permission_filters["is_staff"] = self._current_user.is_staff
 
         permissions = await self._uow.role_permission_repository.list_permission(permission_filters)
-        return schemas.ListPermissionSchema(
-            permissions = [
-                schemas.Permission.model_validate(permission) for permission in permissions
-            ]
-        )
+        return permissions
 
-    async def create_role(self, data: dict) -> schemas.RolePermissionSchema:
+    async def create_role(self, data: dict) -> tuple[role_permission_domain.RoleModel, list[role_permission_domain.PermissionModel]]:
 
-        role = role_permission_domain.Role.create(
+        role = role_permission_domain.RoleModel.create(
             name = data.get("name"),
             permission_ids=data.get("permission_ids", []),
             created_by_id=self._current_user.id,
@@ -105,7 +100,7 @@ class RolePermissionService(AbstractRolePermissionService):
         role = await self._uow.role_permission_repository.create_role(role)
         permissions = await self._uow.role_permission_repository.list_permission(permission_filters={"role_id": role.id})
 
-        return self._to_role_permission_schema(role=role, permissions=permissions)
+        return role, permissions
 
 
     async def create_default_roles_for_tenant(self, tenant_id: UUID) -> None:
@@ -116,7 +111,7 @@ class RolePermissionService(AbstractRolePermissionService):
             for permission in permissions
         }
         roles = [
-            role_permission_domain.Role.create_default(
+            role_permission_domain.RoleModel.create_default(
                 name=default_role["name"],
                 tenant_id=tenant_id,
                 permission_ids=[permission_mapping.get(code) for code in default_role["permissions"]]
@@ -126,9 +121,9 @@ class RolePermissionService(AbstractRolePermissionService):
         await self._uow.role_permission_repository.bulk_create_role(roles)
 
 
-    async def update_role(self, data: dict) -> schemas.RolePermissionSchema:
+    async def update_role(self, data: dict) -> tuple[role_permission_domain.RoleModel, list[role_permission_domain.PermissionModel]]:
 
-        role = role_permission_domain.Role.update(
+        role = role_permission_domain.RoleModel.update(
             role_id = data.get("id"),
             name = data.get("name"),
             permission_ids=data.get("permission_ids", []),
@@ -142,7 +137,7 @@ class RolePermissionService(AbstractRolePermissionService):
         role = await self._uow.role_permission_repository.update_role(role)
         permissions = await self._uow.role_permission_repository.list_permission(permission_filters={"role_id": role.id})
 
-        return self._to_role_permission_schema(role=role, permissions=permissions)
+        return role, permissions
 
 
     async def delete_role(self, role_id: UUID) -> None:
@@ -159,20 +154,3 @@ class RolePermissionService(AbstractRolePermissionService):
             raise ResourceInUseError("Cannot delete this role, it has been assigned to user")
 
         await self._uow.role_permission_repository.delete_role(role_id)
-
-
-    def _to_role_permission_schema(self, role: role_permission_domain.Role, permissions: role_permission_domain.Permission) -> schemas.RolePermissionSchema:
-
-        return schemas.RolePermissionSchema(
-            id = role.id,
-            name = role.name,
-            is_system_role = role.is_system_role,
-            permissions = [
-                schemas.Permission(
-                    id = permission.id,
-                    codename = permission.codename,
-                    name = permission.name,
-                    description = permission.description
-                ) for permission in permissions
-            ]
-        )

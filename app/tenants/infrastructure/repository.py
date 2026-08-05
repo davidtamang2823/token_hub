@@ -14,10 +14,10 @@ class AbstractTenantRepository(abc.ABC):
 
 
     @abc.abstractmethod
-    async def get_tenant_by_id(self, tenant_id: UUID) -> tenant_domain_models.Tenant | None: ...
+    async def get_tenant_by_id(self, tenant_id: UUID) -> tenant_domain_models.TenantModel | None: ...
 
     @abc.abstractmethod
-    async def get_tenant_by_name(self, name: str, exclude_tenant_id: UUID = None) -> tenant_domain_models.Tenant | None: ...
+    async def get_tenant_by_name(self, name: str, exclude_tenant_id: UUID = None) -> tenant_domain_models.TenantModel | None: ...
 
     @abc.abstractmethod
     async def tenant_id_exists(self, tenant_id: UUID) -> bool: ...
@@ -29,16 +29,16 @@ class AbstractTenantRepository(abc.ABC):
     async def tenant_code_exists(self, code: str, exclude_tenant_id: UUID = None) -> bool: ...
 
     @abc.abstractmethod
-    async def get_tenant_by_code(self, code: str, exclude_tenant_id: UUID = None) -> tenant_domain_models.Tenant | None: ...
+    async def get_tenant_by_code(self, code: str, exclude_tenant_id: UUID = None) -> tenant_domain_models.TenantModel | None: ...
 
     @abc.abstractmethod
-    async def list_tenant(self, tenant_filters: dict, limit: int, offset: int) -> tuple[list[tenant_domain_models.Tenant], int]: ...
+    async def list_tenant(self, tenant_filters: dict, limit: int, offset: int) -> tuple[list[tenant_domain_models.TenantModel], int]: ...
 
     @abc.abstractmethod
-    async def create_tenant(self, tenant: tenant_domain_models.Tenant) -> tenant_domain_models.Tenant: ...
+    async def create_tenant(self, tenant: tenant_domain_models.TenantModel) -> tenant_domain_models.TenantModel: ...
 
     @abc.abstractmethod
-    async def update_tenant(self, tenant: tenant_domain_models.Tenant) -> tenant_domain_models.Tenant: ...
+    async def update_tenant(self, tenant: tenant_domain_models.TenantModel) -> tenant_domain_models.TenantModel: ...
 
     @abc.abstractmethod
     async def delete_tenant(self, tenant_id: UUID) -> None: ...
@@ -50,13 +50,13 @@ class TenantRepository(AbstractTenantRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_tenant_by_id(self, tenant_id: UUID) -> tenant_domain_models.Tenant:
+    async def get_tenant_by_id(self, tenant_id: UUID) -> tenant_domain_models.TenantModel:
         
         stmt = (
-            select(tenant_orm.Tenant)
+            select(tenant_orm.TenantORM)
             .where(
-                tenant_orm.Tenant.id == tenant_id, 
-                tenant_orm.Tenant.is_deleted == False
+                tenant_orm.TenantORM.id == tenant_id, 
+                tenant_orm.TenantORM.is_deleted == False
             )
         )
         result = await self._session.execute(stmt)
@@ -65,36 +65,34 @@ class TenantRepository(AbstractTenantRepository):
             tenant_orm_obj=tenant_orm_obj
         ) 
 
-    async def get_tenant_by_name(self, name: str, exclude_tenant_id: UUID | None = None) -> tenant_domain_models.Tenant | None:
+    async def get_tenant_by_name(self, name: str, exclude_tenant_id: UUID | None = None) -> tenant_domain_models.TenantModel | None:
         
         stmt = (
-            select(tenant_orm.Tenant)
+            select(tenant_orm.TenantORM)
             .where(
-                tenant_orm.Tenant.name.ilike(name), 
-                tenant_orm.Tenant.is_deleted == False
+                tenant_orm.TenantORM.name.ilike(name), 
+                tenant_orm.TenantORM.is_deleted == False
             )
         )
         if exclude_tenant_id:
-            stmt = stmt.where(tenant_orm.Tenant.id != exclude_tenant_id)
-
+            stmt = stmt.where(tenant_orm.TenantORM.id != exclude_tenant_id)
         result = await self._session.execute(stmt)
         tenant_orm_obj = result.scalar_one_or_none()
         return self._to_tenant_domain_model(
             tenant_orm_obj=tenant_orm_obj
         ) 
 
-    async def get_tenant_by_code(self, code: str, exclude_tenant_id: UUID | None = None) -> tenant_domain_models.Tenant | None:
+    async def get_tenant_by_code(self, code: str, exclude_tenant_id: UUID | None = None) -> tenant_domain_models.TenantModel | None:
         
         stmt = (
-            select(tenant_orm.Tenant)
+            select(tenant_orm.TenantORM)
             .where(
-                tenant_orm.Tenant.code.ilike(code), 
-                tenant_orm.Tenant.is_deleted == False
+                tenant_orm.TenantORM.code.ilike(code), 
+                tenant_orm.TenantORM.is_deleted == False
             )
         )
         if exclude_tenant_id:
-            stmt = stmt.where(tenant_orm.Tenant.id != exclude_tenant_id)
-
+            stmt = stmt.where(tenant_orm.TenantORM.id != exclude_tenant_id)
         result = await self._session.execute(stmt)
         tenant_orm_obj = result.scalar_one_or_none()
         return self._to_tenant_domain_model(
@@ -107,7 +105,7 @@ class TenantRepository(AbstractTenantRepository):
         stmt = (
             select(
                 exists()
-                .where(tenant_orm.Tenant.id == tenant_id)
+                .where(tenant_orm.TenantORM.id == tenant_id)
             )
         )
 
@@ -119,10 +117,10 @@ class TenantRepository(AbstractTenantRepository):
 
         exists_stmt = (
             exists()
-            .where(tenant_orm.Tenant.name.ilike(name), tenant_orm.Tenant.is_deleted==False)
+            .where(tenant_orm.TenantORM.name.ilike(name), tenant_orm.TenantORM.is_deleted==False)
         )
         if exclude_tenant_id:
-            exists_stmt = exists_stmt.where(tenant_orm.Tenant.id != exclude_tenant_id)
+            exists_stmt = exists_stmt.where(tenant_orm.TenantORM.id != exclude_tenant_id)
         stmt = (
             select(
                exists_stmt
@@ -136,11 +134,11 @@ class TenantRepository(AbstractTenantRepository):
 
         exists_stmt = (
             exists()
-            .where(tenant_orm.Tenant.code.ilike(code), tenant_orm.Tenant.is_deleted==False)
+            .where(tenant_orm.TenantORM.code.ilike(code), tenant_orm.TenantORM.is_deleted==False)
         )
         
         if exclude_tenant_id:
-            exists_stmt = exists_stmt.where(tenant_orm.Tenant.id != exclude_tenant_id)
+            exists_stmt = exists_stmt.where(tenant_orm.TenantORM.id != exclude_tenant_id)
         
         stmt = (
             select(
@@ -153,7 +151,7 @@ class TenantRepository(AbstractTenantRepository):
 
 
 
-    async def list_tenant(self, tenant_filters: dict, limit: int, offset: int) -> tuple[list[tenant_domain_models.Tenant], int]:
+    async def list_tenant(self, tenant_filters: dict, limit: int, offset: int) -> tuple[list[tenant_domain_models.TenantModel], int]:
         
         has_view_all_tenant_permission = tenant_filters.get("has_view_all_tenant_permission", False)
         user_id = tenant_filters.get("user_id")
@@ -162,15 +160,15 @@ class TenantRepository(AbstractTenantRepository):
 
         if has_view_all_tenant_permission:
             stmt = (
-                select(tenant_orm.Tenant)
-                .where(tenant_orm.Tenant.is_deleted == False)
+                select(tenant_orm.TenantORM)
+                .where(tenant_orm.TenantORM.is_deleted == False)
                 
             )
         else:
             stmt = (
-                select(tenant_orm.Tenant)
-                .join(user_orm.UserTenant, tenant_orm.Tenant.id==user_orm.UserTenant.tenant_id)
-                .where(user_orm.UserTenant.user_id == user_id, tenant_orm.Tenant.is_deleted == False)
+                select(tenant_orm.TenantORM)
+                .join(user_orm.UserTenant, tenant_orm.TenantORM.id==user_orm.UserTenant.tenant_id)
+                .where(user_orm.UserTenant.user_id == user_id, tenant_orm.TenantORM.is_deleted == False)
             )
 
         if search_key:
@@ -178,8 +176,8 @@ class TenantRepository(AbstractTenantRepository):
                 stmt
                 .where(
                     or_(
-                        tenant_orm.Tenant.name.ilike(f"{search_key}%"), 
-                        tenant_orm.Tenant.code.ilike(f"{search_key}%")
+                        tenant_orm.TenantORM.name.ilike(f"{search_key}%"), 
+                        tenant_orm.TenantORM.code.ilike(f"{search_key}%")
                     )
                 )
             
@@ -189,22 +187,22 @@ class TenantRepository(AbstractTenantRepository):
             stmt = (
                 stmt
                 .where(
-                    tenant_orm.Tenant.is_active == is_active
+                    tenant_orm.TenantORM.is_active == is_active
                 )
             )
         
         count_stmt = select(func.count()).select_from(stmt.subquery())
         total = await self._session.scalar(count_stmt)
-        stmt = stmt.distinct().order_by(tenant_orm.Tenant.name).offset(offset).limit(limit)
+        stmt = stmt.distinct().order_by(tenant_orm.TenantORM.name).offset(offset).limit(limit)
         result = await self._session.execute(stmt)
         user_orm_objs = result.scalars().all()
         tenants = [self._to_tenant_domain_model(user_orm_obj) for user_orm_obj in user_orm_objs]
         return tenants, total
 
 
-    async def create_tenant(self, tenant: tenant_domain_models.Tenant) -> tenant_domain_models.Tenant:
+    async def create_tenant(self, tenant: tenant_domain_models.TenantModel) -> tenant_domain_models.TenantModel:
         
-        tenant_orm_obj = tenant_orm.Tenant(
+        tenant_orm_obj = tenant_orm.TenantORM(
             id = tenant.id,
             name = tenant.name,
             code = tenant.code,
@@ -214,11 +212,11 @@ class TenantRepository(AbstractTenantRepository):
         self._session.add(tenant_orm_obj)
         return tenant
 
-    async def update_tenant(self, tenant: tenant_domain_models.Tenant) -> tenant_domain_models.Tenant:
+    async def update_tenant(self, tenant: tenant_domain_models.TenantModel) -> tenant_domain_models.TenantModel:
         
         stmt = (
-            update(tenant_orm.Tenant)
-            .where(tenant_orm.Tenant.id == tenant.id)
+            update(tenant_orm.TenantORM)
+            .where(tenant_orm.TenantORM.id == tenant.id)
             .values(
                 name = tenant.name,
                 code = tenant.code,
@@ -233,18 +231,18 @@ class TenantRepository(AbstractTenantRepository):
     async def delete_tenant(self, tenant_id: UUID) -> None:
         
         stmt = (
-            update(tenant_orm.Tenant)
-            .where(tenant_orm.Tenant.id == tenant_id)
+            update(tenant_orm.TenantORM)
+            .where(tenant_orm.TenantORM.id == tenant_id)
             .values(
                 is_deleted = True
             )
         )
         await self._session.execute(stmt)
 
-    def _to_tenant_domain_model(self, tenant_orm_obj: tenant_orm.Tenant) -> tenant_domain_models.Tenant | None:
+    def _to_tenant_domain_model(self, tenant_orm_obj: tenant_orm.TenantORM) -> tenant_domain_models.TenantModel | None:
 
         if tenant_orm_obj:
-            return tenant_domain_models.Tenant(
+            return tenant_domain_models.TenantModel(
                 id = tenant_orm_obj.id,
                 name = tenant_orm_obj.name,
                 code = tenant_orm_obj.code,

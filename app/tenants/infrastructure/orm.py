@@ -1,8 +1,8 @@
 from sqlalchemy import String
 from sqlalchemy.orm import mapped_column, Mapped
-from core.database import AuditModel
+from core.database import AuditModelORM
 
-class Tenant(AuditModel):
+class TenantORM(AuditModelORM):
     __tablename__ = "tenants"
 
     name: Mapped[str] = mapped_column(String(125))

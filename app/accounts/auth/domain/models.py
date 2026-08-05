@@ -3,7 +3,7 @@ from uuid import UUID
 from pydantic import EmailStr
 from core.domain import DomainModel
 
-class UserVerification(DomainModel):
+class UserVerificationModel(DomainModel):
 
     first_name: str
     last_name: str
@@ -11,7 +11,7 @@ class UserVerification(DomainModel):
     password: str
     hashed_password: str | None = None
 
-class UserAuth(DomainModel):
+class UserAuthModel(DomainModel):
 
     id: UUID
     hashed_password: str

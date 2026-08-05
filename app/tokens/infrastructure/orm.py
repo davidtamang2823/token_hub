@@ -1,8 +1,8 @@
 from sqlalchemy import Integer, Index
 from sqlalchemy.orm import mapped_column, Mapped
-from core.database import TenantAuditModel
+from core.database import TenantAuditModelORM
 
-class Token(TenantAuditModel):
+class TokenORM(TenantAuditModelORM):
 
     __tablename__ = "tokens"
 

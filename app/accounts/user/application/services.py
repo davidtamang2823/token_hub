@@ -28,10 +28,10 @@ class AbstractUserService(abc.ABC):
     async def request_user_email_change(self, email: str) -> None: ...
 
     @abc.abstractmethod
-    async def update_user_name(self, user_dto: user_dtos.UpdateUserName) -> None: ...
+    async def update_user_name(self, user_dto: user_dtos.UpdateUserNameDTO) -> None: ...
 
     @abc.abstractmethod
-    async def update_user_status(self, user_dto: user_dtos.UpdateUserStatus) -> None: ...
+    async def update_user_status(self, user_dto: user_dtos.UpdateUserStatusDTO) -> None: ...
 
     @abc.abstractmethod
     async def remove_user_from_tenant(self, data: typing.Dict): ...
@@ -82,8 +82,8 @@ class UserService(AbstractUserService):
             raise NotFoundException(f"User with id {user_id} not found")
         return user
 
-    async def _create_user(self, data: dict) -> user_domain.User:
-        user = user_domain.User.create(
+    async def _create_user(self, data: dict) -> user_domain.UserModel:
+        user = user_domain.UserModel.create(
             first_name=data.get("first_name", ""),
             last_name=data.get("last_name", ""),
             email=data.get("email"),
@@ -113,7 +113,7 @@ class UserService(AbstractUserService):
         if not user:
             user = await self._create_user(data)
         
-        user_tenant = user_domain.UserTenant.create(
+        user_tenant = user_domain.UserTenantModel.create(
             email=email,
             role_id=role_id,
             tenant_id=data.get("tenant_id"),
@@ -129,7 +129,7 @@ class UserService(AbstractUserService):
         self._uow.register_entity(user_tenant)
 
 
-    async def update_user_name(self, user_dto: user_dtos.UpdateUserName, user_id: UUID | None = None) -> read_models.UserReadModel:
+    async def update_user_name(self, user_dto: user_dtos.UpdateUserNameDTO, user_id: UUID | None = None) -> read_models.UserReadModel:
 
         user_id = self._current_user.id if user_id is None else user_id
 
@@ -149,7 +149,7 @@ class UserService(AbstractUserService):
         )
 
 
-    async def update_user_status(self, user_dto: user_dtos.UpdateUserStatus) -> None:
+    async def update_user_status(self, user_dto: user_dtos.UpdateUserStatusDTO) -> None:
 
         if not await self._uow.user_repository.is_user_in_tenant(user_id=user_dto.user_id, tenant_id=self._current_user.tenant_id):
             raise NotFoundException(f"User with id {user_dto.user_id} not found")

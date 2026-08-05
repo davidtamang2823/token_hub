@@ -3,10 +3,10 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy import DateTime, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from core.database import NullableAuditModel, TenantNullableAuditModel
+from core.database import NullableAuditModelORM, TenantNullableAuditModelORM
 
 
-class User(NullableAuditModel):
+class UserORM(NullableAuditModelORM):
 
     __tablename__ = "users"
 
@@ -20,14 +20,14 @@ class User(NullableAuditModel):
     verification_token: Mapped[str] = mapped_column(String(64),nullable=True, default=None)
     verification_token_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
 
-    tenants: Mapped[typing.List["Tenant"]] = relationship(
+    tenants: Mapped[typing.List["TenantORM"]] = relationship(
         secondary="user_tenants",
-        primaryjoin="User.id == UserTenant.user_id",
-        secondaryjoin="UserTenant.tenant_id == Tenant.id",
+        primaryjoin="UserORM.id == UserTenantORM.user_id",
+        secondaryjoin="UserTenantORM.tenant_id == TenantORM.id",
         viewonly=True
     )
 
-class UserTenant(TenantNullableAuditModel):
+class UserTenantORM(TenantNullableAuditModelORM):
 
     __tablename__ = "user_tenants"
 

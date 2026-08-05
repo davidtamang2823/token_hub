@@ -3,8 +3,8 @@ import datetime
 from sqlalchemy import select
 from core.database import AsyncSessionLocal
 from core.security import PasswordHandler
-from accounts.user.infrastructure.orm import User, UserTenant
-from accounts.role_permission.infrastructure.orm import Role
+from accounts.user.infrastructure.orm import UserORM, UserTenantORM
+from accounts.role_permission.infrastructure.orm import RoleORM
 from core.constants.roles import ADMIN
 
 password_handler = PasswordHandler()
@@ -13,7 +13,7 @@ password_handler = PasswordHandler()
 async def seed_user(email: str, password: str, first_name: str, last_name: str, is_staff: bool = False, is_active: bool = False):
     async with AsyncSessionLocal() as session:
         try:
-            stmt = select(User).where(User.email == email)
+            stmt = select(UserORM).where(UserORM.email == email)
             result = await session.execute(stmt)
             existing_user = result.scalar_one_or_none()
 
@@ -21,7 +21,7 @@ async def seed_user(email: str, password: str, first_name: str, last_name: str, 
                 logging.info(f"User '{email}' already exists. Skipping.")
                 return
 
-            stmt = select(Role).where(Role.name == ADMIN, Role.tenant_id.is_(None))
+            stmt = select(RoleORM).where(RoleORM.name == ADMIN, RoleORM.tenant_id.is_(None))
             result = await session.execute(stmt)
             admin_role = result.scalar_one_or_none()
 
@@ -30,7 +30,7 @@ async def seed_user(email: str, password: str, first_name: str, last_name: str, 
                 return
 
             hashed_password = password_handler.hash_password(password)
-            new_user = User(
+            new_user = UserORM(
                 email=email,
                 password=hashed_password, 
                 first_name=first_name,
@@ -43,7 +43,7 @@ async def seed_user(email: str, password: str, first_name: str, last_name: str, 
             await session.flush()
 
             # tenant_id=None — system-level admin, not scoped to any tenant
-            user_tenant = UserTenant(user_id=new_user.id, tenant_id=None, role_id=admin_role.id)
+            user_tenant = UserTenantORM(user_id=new_user.id, tenant_id=None, role_id=admin_role.id)
             session.add(user_tenant)
 
             await session.commit()

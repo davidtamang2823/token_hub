@@ -5,7 +5,7 @@ from core.unit_of_work import UnitOfWork
 from core.constants import permissions
 from core.pagination import Pagination, DEFAULT_PAGE, DEFAULT_PAGE_SIZE
 from core.exceptions import NotFoundException, AlreadyExistsException, ForbiddenException
-from tenants.domain.models import Tenant
+from tenants.domain.models import TenantModel
 from accounts.role_permission.application.services import AbstractRolePermissionService
 from accounts.role_permission.application.policies import TenantAccessPolicy
 
@@ -16,13 +16,13 @@ class AbstractTenantService(abc.ABC):
     async def list_tenant(self, tenant_filters: dict, page: int, page_size: int) -> Pagination: ...
 
     @abc.abstractmethod
-    async def retrieve_tenant(self, tenant_id: UUID) -> Tenant:  ...
+    async def retrieve_tenant(self, tenant_id: UUID) -> TenantModel:  ...
 
     @abc.abstractmethod
-    async def create_tenant(self, data: dict) -> Tenant: ...
+    async def create_tenant(self, data: dict) -> TenantModel: ...
 
     @abc.abstractmethod
-    async def update_tenant(self, data: dict) -> Tenant: ...
+    async def update_tenant(self, data: dict) -> TenantModel: ...
 
     @abc.abstractmethod
     async def delete_tenant(self, tenant_id: UUID) -> None: ...
@@ -59,7 +59,7 @@ class TenantService(AbstractTenantService):
             data = tenants
         )
 
-    async def retrieve_tenant(self, tenant_id: UUID) -> Tenant:
+    async def retrieve_tenant(self, tenant_id: UUID) -> TenantModel:
         
         self._tenant_access_policy.ensure_user_in_tenant(tenant_id=tenant_id)
 
@@ -73,9 +73,8 @@ class TenantService(AbstractTenantService):
 
         return tenant
 
-    async def create_tenant(self, data: dict) -> Tenant:
-
-        tenant = Tenant.create(
+    async def create_tenant(self, data: dict) -> TenantModel:
+        tenant = TenantModel.create(
             name=data.get("name"),
             code=data.get("code"),
             is_active=data.get("is_active"),
@@ -92,7 +91,7 @@ class TenantService(AbstractTenantService):
         return tenant
 
 
-    async def update_tenant(self, data: dict) -> Tenant:
+    async def update_tenant(self, data: dict) -> TenantModel:
 
         tenant_id = data.get("id")
 
@@ -101,7 +100,7 @@ class TenantService(AbstractTenantService):
         if not await self._uow.tenant_repository.tenant_id_exists(tenant_id=tenant_id):
             raise NotFoundException(f"Tenant with id {tenant_id} not found")
 
-        tenant = Tenant.update(
+        tenant = TenantModel.update(
             tenant_id=data.get("id"),
             name=data.get("name"),
             code=data.get("code"),

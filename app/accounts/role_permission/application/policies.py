@@ -1,3 +1,4 @@
+from uuid import UUID
 from core.unit_of_work import UnitOfWork
 from core.context import CurrentUser
 from core.constants.permissions import CAN_VIEW_ALL_TENANT

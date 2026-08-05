@@ -15,8 +15,8 @@ from core.exceptions import (
    ErrorType
 )
 
-from accounts.user.infrastructure.orm import User, UserTenant
-from accounts.role_permission.infrastructure.orm import Permission, RolePermission
+from accounts.user.infrastructure.orm import UserORM, UserTenantORM
+from accounts.role_permission.infrastructure.orm import PermissionORM, RolePermissionORM
 
 EXEMPT_PATHS = {
     ("/api/v1/auth/login", "POST"),
@@ -121,7 +121,7 @@ class JWTAuthenticationMiddleware(BaseHTTPMiddleware):
     
     async def _get_current_user(self, session: AsyncSession, user_id: UUID, tenant_id: UUID | None = None) -> CurrentUser | None:
         stmt = (
-            select(User).where(User.id == user_id)
+            select(UserORM).where(UserORM.id == user_id)
         )
         result = await session.execute(stmt)
         user_orm_obj = result.scalar_one_or_none()
@@ -130,16 +130,16 @@ class JWTAuthenticationMiddleware(BaseHTTPMiddleware):
             return None
 
         stmt = (
-            select(Permission.codename, RolePermission.role_id)
-            .join(RolePermission, RolePermission.permission_id == Permission.id)
-            .join(UserTenant, UserTenant.role_id == RolePermission.role_id)
-            .where(UserTenant.user_id == user_id)
+            select(PermissionORM.codename, RolePermissionORM.role_id)
+            .join(RolePermissionORM, RolePermissionORM.permission_id == PermissionORM.id)
+            .join(UserTenantORM, UserTenantORM.role_id == RolePermissionORM.role_id)
+            .where(UserTenantORM.user_id == user_id)
         )
 
         if user_orm_obj.is_staff:
-            stmt = stmt.where(UserTenant.tenant_id == None)
+            stmt = stmt.where(UserTenantORM.tenant_id == None)
         else:
-            stmt = stmt.where(UserTenant.tenant_id == tenant_id)
+            stmt = stmt.where(UserTenantORM.tenant_id == tenant_id)
 
         stmt = stmt.distinct()
 

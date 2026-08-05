@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 from pydantic import  ConfigDict, Field, field_validator, model_validator
 from core.domain import DomainModel
 
-class Role(DomainModel):
+class RoleModel(DomainModel):
 
     name: str
     id: UUID = Field(default_factory=uuid4)
@@ -58,7 +58,7 @@ class Role(DomainModel):
             updated_by_id=updated_by_id
         )
 
-class Permission(DomainModel):
+class PermissionModel(DomainModel):
 
     id: UUID
     codename: str
