@@ -7,13 +7,13 @@ from dataclasses import dataclass, field, asdict
 class BaseEvent:
 
     event_id: UUID = field(default_factory=uuid4)
-    created_at: datetime = field(default=lambda : datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory= lambda :datetime.now(timezone.utc))
     event_type: str = field(init=False)
 
     def to_dict(self) -> dict:
         data = asdict(self)
-        data["occurred_at"] = self.occurred_at.isoformat()
-        data["event_type"] = self.event_type.value  # if EventTypes is an Enum
+        data["created_at"] = self.created_at.isoformat()
+        data["event_type"] = self.event_type  # if EventTypes is an Enum
         return data
 
 class EventBus:
@@ -40,8 +40,11 @@ class EventBus:
         return add_event
 
     def publish(self, events: list[BaseEvent]):
+        print("idddddddddddddddddddddddddd", id(self))
+        print("eventseeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", events)
         for event in events:
             event_callables = self._events.get(event.event_type, [])
+            print("aaaaaaaaaaaaaaaaaaaaaaaa", self._events, event_callables)
             for event_callable in event_callables:
                 event_callable(event)
 
@@ -60,6 +63,12 @@ class EventTypes:
     USER_UNBLOCKED = "user.unblocked"
     USER_ADDED_TO_TENANT = "user.user_added_to_tenant"
     USER_REMOVED_FROM_TENANT = "tenant.user_removed_from_tenant"
+    USER_EMAIL_CHANGE_REQUEST = "user.email_change_request"
+    USER_EMAIL_CHANGE_REQUEST_APPROVED = "user.email_change_request_approved"
+    USER_EMAIL_CHANGE_REQUEST_REJECTED = "user.email_change_request_rejected"
+    USER_EMAIL_CHANGED = "user.email_changed"
+    USER_RESEND_VERIFICATION = "user.resend_verification"
+    USER_PASSWORD_RESET_REQUEST = "user.password_reset_request"
 
     # tenant events
     TENANT_CREATED = "tenant.created"
