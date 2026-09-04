@@ -17,5 +17,5 @@ class TemplateRenderer:
 
 
 template_renderer = TemplateRenderer(
-    templates_dir=Path(__file__).parent
+    templates_dir=Path(__file__).parent / "templates"
 )

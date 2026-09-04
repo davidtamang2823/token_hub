@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from core.config import settings
-from notifications.infrastructure.templates.template_renderer import TemplateRenderer, template_renderer
+from notifications.infrastructure.template_renderer import TemplateRenderer, template_renderer
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,8 @@ class SMTPEmailSender(AbstractEmailSender):
             with smtplib.SMTP(self._host, self._port, timeout=10) as server:
                 if self._use_tls:
                     server.starttls()
-                server.login(self._username, self._password)
+                if self._username and self._password:
+                    server.login(self._username, self._password)
                 server.sendmail(self._from_email, [to], message.as_string())
         except smtplib.SMTPException:
             logger.exception("Failed to send email to %s", to)
@@ -98,11 +99,11 @@ class SMTPEmailSender(AbstractEmailSender):
 
 
 email_sender = SMTPEmailSender(
-    host=settings.EMAIL_HOST,
-    port=settings.EMAIL_PORT,
-    username=settings.EMAIL_HOST_USER,
-    password=settings.EMAIL_HOST_PASSWORD,
-    from_email=settings.EMAIL_FROM,
+    host=settings.email_host,
+    port=settings.email_port,
+    username=settings.email_host_user,
+    password=settings.email_host_password,
+    from_email=settings.email_from,
     renderer=template_renderer,
-    use_tls=settings.EMAIL_USE_TLS,
+    use_tls=settings.email_use_tls,
 )

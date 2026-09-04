@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Your Email Has Been Changed{% endblock %}
+
+{% block header_subtitle %}
+  {% if tenant_name or tenant_code %}
+  <span style="color:#9aa1b1; font-size:12px; display:block; margin-top:2px;">{% if tenant_name and tenant_code %}{{ tenant_name }} ({{ tenant_code }}){% elif tenant_name %}{{ tenant_name }}{% elif tenant_code %}{{ tenant_code }}{% endif %}</span>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <span style="display:inline-block; padding:4px 10px; border-radius:12px; background-color:#eaf0ff; color:#1f4fa3; font-size:12px; font-weight:bold;">Security notice</span>
+
+  <h1 style="margin:16px 0; font-size:20px; color:#222222;">Your Account Email Has Been Changed</h1>
+
+  <p style="margin:0 0 16px; font-size:14px; line-height:22px; color:#444444;">
+    This is a confirmation that the email address on your Token Hub account was successfully
+    changed and verified.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fff8e6; border-radius:6px; margin:20px 0; border:1px solid #f0e2b6;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0; font-size:13px; line-height:20px; color:#8a6d1f;">
+          <strong>Didn't make this change?</strong> If you did not request or authorize this,
+          your account may be compromised. Please contact your administrator or Token Hub
+          support immediately.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0; font-size:13px; line-height:20px; color:#8a8f9c;">
+    You're receiving this notice at your previous email address as a security precaution.
+    No further action is needed if you made this change yourself.
+  </p>
+{% endblock %}

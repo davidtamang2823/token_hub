@@ -4,16 +4,46 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}TokenHub{% endblock %}</title>
+  <title>{% block title %}Token Hub{% endblock %}</title>
   {% block extra_css %}{% endblock %}
 </head>
-<body style="margin:0; padding:0; background-color:#f4f4f4; font-family: Arial, sans-serif;">
-  <div style="width:100%; padding:24px 0; text-align:center;">
-    <div style="max-width:600px; width:100%; margin:0 auto; background:#ffffff; border-radius:8px; text-align:left; display:inline-block;">
-      <div style="padding:32px;">
-        {% block content %}{% endblock %}
-      </div>
-    </div>
+<body style="margin:0; padding:0; background-color:#f4f4f4; font-family: Arial, Helvetica, sans-serif;">
+  <div style="width:100%; padding:32px 16px; text-align:center;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; text-align:left;">
+      <tr>
+        <td>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+
+            <!-- Brand header -->
+            <tr>
+              <td style="background-color:#1a1f36; padding:20px 32px;">
+                <span style="color:#ffffff; font-size:18px; font-weight:bold; letter-spacing:0.3px;">Token Hub</span>
+                {% block header_subtitle %}{% endblock %}
+              </td>
+            </tr>
+
+            <!-- Content -->
+            <tr>
+              <td style="padding:32px;">
+                {% block content %}{% endblock %}
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:20px 32px; background-color:#f9fafb; border-top:1px solid #eceef1;">
+                {% block footer %}
+                <p style="margin:0; font-size:12px; color:#a3a9b7; line-height:18px;">
+                  This is an automated notification from Token Hub. Please do not reply to this email.
+                </p>
+                {% endblock %}
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
   </div>
 </body>
 </html>

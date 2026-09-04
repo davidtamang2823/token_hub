@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Email Change Request{% endblock %}
+
+{% block header_subtitle %}
+  {% if tenant_name or tenant_code %}
+  <span style="color:#9aa1b1; font-size:12px; display:block; margin-top:2px;">{% if tenant_name and tenant_code %}{{ tenant_name }} ({{ tenant_code }}){% elif tenant_name %}{{ tenant_name }}{% elif tenant_code %}{{ tenant_code }}{% endif %}</span>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <span style="display:inline-block; padding:4px 10px; border-radius:12px; background-color:#fff8e6; color:#8a6d1f; font-size:12px; font-weight:bold;">Action requires your attention</span>
+
+  <h1 style="margin:16px 0; font-size:20px; color:#222222;">Email Change Requested</h1>
+
+  <p style="margin:0 0 16px; font-size:14px; line-height:22px; color:#444444;">
+    A request to change an account email address has been submitted and is pending admin approval.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4; border-radius:6px; margin:20px 0;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px; color:#8a8f9c; padding-bottom:8px;">Requested by</td>
+            <td style="font-size:13px; color:#222222; font-weight:bold; padding-bottom:8px; text-align:right;">{{ send_by_first_name }} {{ send_by_last_name }}</td>
+          </tr>
+          <tr>
+            <td style="font-size:13px; color:#8a8f9c; padding-bottom:8px;">Current email</td>
+            <td style="font-size:13px; color:#222222; padding-bottom:8px; text-align:right;">{{ send_by }}</td>
+          </tr>
+          <tr>
+            <td style="font-size:13px; color:#8a8f9c;">Requested new email</td>
+            <td style="font-size:13px; color:#222222; font-weight:bold; text-align:right;">{{ new_email }}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0; font-size:13px; line-height:20px; color:#8a8f9c;">
+    No changes have been made yet. This request requires admin approval before it takes effect.
+    If you did not expect this, please review it in your Token Hub admin dashboard.
+  </p>
+{% endblock %}
