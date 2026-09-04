@@ -5,6 +5,7 @@ from dataclasses import dataclass
 @dataclass
 class CurrentUser:
     id: UUID
+    email: str
     is_active: bool
     is_staff: bool
     permissions: list[str]
