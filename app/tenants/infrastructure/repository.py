@@ -105,7 +105,7 @@ class TenantRepository(AbstractTenantRepository):
         stmt = (
             select(
                 exists()
-                .where(tenant_orm.TenantORM.id == tenant_id)
+                .where(tenant_orm.TenantORM.id == tenant_id, tenant_orm.TenantORM.is_deleted == False)
             )
         )
 
@@ -167,8 +167,8 @@ class TenantRepository(AbstractTenantRepository):
         else:
             stmt = (
                 select(tenant_orm.TenantORM)
-                .join(user_orm.UserTenant, tenant_orm.TenantORM.id==user_orm.UserTenant.tenant_id)
-                .where(user_orm.UserTenant.user_id == user_id, tenant_orm.TenantORM.is_deleted == False)
+                .join(user_orm.UserTenantORM, tenant_orm.TenantORM.id==user_orm.UserTenantORM.tenant_id)
+                .where(user_orm.UserTenantORM.user_id == user_id, tenant_orm.TenantORM.is_deleted == False)
             )
 
         if search_key:
