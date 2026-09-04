@@ -6,10 +6,13 @@ from core.middleware.authentication import JWTAuthenticationMiddleware
 from core.security import TokenHandler
 from core.config import settings
 from core.exceptions import AppException, ErrorType
+from core.dependencies import verify_tenant_membership, require_staff_user, require_tenant_user, require_tenant_header
 
-from accounts.auth.presentation.v1.routes import router as auth_router
+from accounts.auth.presentation.v1.routes import public_router as auth_public_router, router as auth_router, admin_router as auth_admin_router
 from tenants.presentation.v1.routes import router as tenant_router, admin_router as tenant_admin_router
 from accounts.role_permission.presentation.v1.routes import router as role_router, admin_router as role_admin_router
+from accounts.user.presentation.v1.routes import router as user_router, admin_router as user_admin_router, public_router as user_public_router
+
 
 app = FastAPI()
 
@@ -55,15 +58,33 @@ app.add_middleware(JWTAuthenticationMiddleware, token_handler=token_handler)
 
 API_V1 = "/api/v1"
 
-v1_router = APIRouter(prefix=API_V1)
-v1_router.include_router(auth_router)
-v1_router.include_router(tenant_router)
-v1_router.include_router(role_router)
+v1_public_router = APIRouter(prefix=API_V1)
+v1_public_router.include_router(auth_public_router)
+v1_public_router.include_router(user_public_router)
 
-v1_admin_router = APIRouter(prefix=API_V1)
+v1_router = APIRouter(
+    prefix=API_V1, 
+    dependencies=[
+        Depends(require_tenant_header), 
+        Depends(require_tenant_user), 
+        Depends(verify_tenant_membership)
+    ]
+)
+v1_router.include_router(role_router)
+v1_router.include_router(user_router)
+v1_router.include_router(auth_router)
+
+v1_admin_router = APIRouter(prefix=API_V1, dependencies=[Depends(require_staff_user)])
 v1_admin_router.include_router(tenant_admin_router)
 v1_admin_router.include_router(role_admin_router)
+v1_admin_router.include_router(user_admin_router)
+v1_admin_router.include_router(auth_admin_router)
 
+v1_user_router = APIRouter(prefix=API_V1)
+v1_user_router.include_router(tenant_router)
+
+
+app.include_router(v1_public_router)
 app.include_router(v1_router)
 app.include_router(v1_admin_router)
-
+app.include_router(v1_user_router)
