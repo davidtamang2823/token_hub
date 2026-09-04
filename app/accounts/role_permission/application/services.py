@@ -1,4 +1,5 @@
 import abc
+from typing import Any
 from uuid import UUID
 from accounts.role_permission.domain import models as role_permission_domain
 from core.unit_of_work import UnitOfWork
@@ -14,7 +15,7 @@ class AbstractRolePermissionService(abc.ABC):
     async def retrieve_role(self, role_id: UUID) -> tuple[role_permission_domain.RoleModel, list[role_permission_domain.PermissionModel]]: ...
 
     @abc.abstractmethod
-    async def list_role(self, role_filters: dict, page: int, page_size: int)  -> Pagination: ...
+    async def list_role(self, role_filters: dict, page: int, page_size: int)  -> tuple[int, Any]: ...
 
     @abc.abstractmethod
     async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> list[role_permission_domain.RoleModel]: ...
@@ -55,18 +56,12 @@ class RolePermissionService(AbstractRolePermissionService):
         return role, permissions
         
 
-    async def list_role(self, role_filters: dict, page: int, page_size: int)  -> Pagination:
-
+    async def list_role(self, role_filters: dict, page: int, page_size: int)  -> tuple[int, Any]:
         role_filters["tenant_id"] = self._current_user.tenant_id
         offset = (page - 1) * page_size
         roles = await self._uow.role_permission_repository.list_role(role_filters, offset, page_size)
         total = await self._uow.role_permission_repository.count_roles(role_filters)
-        return Pagination(
-            page=page,
-            page_size=page_size,
-            total=total,
-            data=roles
-        )
+        return total, roles
 
     async def list_role_option(self, page: int, page_size: int, tenant_id: UUID)  -> list[role_permission_domain.RoleModel]:
 
