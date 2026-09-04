@@ -22,6 +22,10 @@ EXEMPT_PATHS = {
     ("/api/v1/auth/login", "POST"),
     ("/api/v1/auth/verify", "POST"),
     ("/api/v1/auth/refresh", "POST"),
+    ("/api/v1/auth/verify-user", "POST"),
+    ("/api/v1/auth/resend-user-verification", "POST"),
+    ("/api/v1/auth/request-password-reset", "POST"),
+    ("/api/v1/auth/reset-password", "POST"),
     ("/docs", "GET"),
     ("/redoc", "GET"),
     ("/openapi.json", "GET"),
@@ -149,6 +153,7 @@ class JWTAuthenticationMiddleware(BaseHTTPMiddleware):
 
         return CurrentUser(
             id=user_orm_obj.id,
+            email=user_orm_obj.email,
             is_active=user_orm_obj.is_active,
             is_staff=user_orm_obj.is_staff,
             permissions=permissions,
