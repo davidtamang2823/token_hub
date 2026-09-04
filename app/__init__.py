@@ -14,7 +14,7 @@ from billing.infrastructure.orm import BillORM
 
 #For events
 from core.events import event_bus, EventTypes, BaseEvent
-
+import accounts.user.application.event_handlers
 
 __all__ = [
     "BaseORM",
