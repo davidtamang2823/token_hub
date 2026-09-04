@@ -21,6 +21,9 @@ class AbstractRolePermissionRepository(abc.ABC):
     async def role_exists_in_tenant(self, name: str, tenant_id: UUID | None = None) -> bool: ...
 
     @abc.abstractmethod
+    async def role_id_exists_in_tenant(self, role_id: UUID, tenant_id: UUID | None) -> bool: ...
+
+    @abc.abstractmethod
     async def list_role(self, role_filters: dict, offset: int, limit: int)  -> tuple[int, list[role_permission_orm.RoleORM]]: ...
 
     @abc.abstractmethod
@@ -107,6 +110,25 @@ class RolePermissionRepository(AbstractRolePermissionRepository):
             )
         )
 
+
+        result = await self._session.execute(stmt)
+        return result.scalar()
+
+    async def role_id_exists_in_tenant(self, role_id: UUID, tenant_id: UUID | None) -> bool:
+        
+        exists_stmt = (
+            exists()
+            .where(
+                role_permission_orm.RoleORM.id == role_id,
+                role_permission_orm.RoleORM.tenant_id == tenant_id
+            )
+        )
+        
+        stmt = (
+            select(
+                exists_stmt
+            )
+        )
 
         result = await self._session.execute(stmt)
         return result.scalar()
