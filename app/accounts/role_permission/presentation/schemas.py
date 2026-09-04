@@ -8,19 +8,19 @@ class BasePydanticModel(BaseModel):
         from_attributes = True
     )
 
-class Role(BasePydanticModel):
+class RoleSchema(BasePydanticModel):
 
     id: UUID
     name: str
     is_system_role: bool
 
-class RoleOption(BasePydanticModel):
+class RoleOptionSchema(BasePydanticModel):
 
     id: UUID
     name: str
 
 
-class Permission(BasePydanticModel):
+class PermissionSchema(BasePydanticModel):
 
     id: UUID
     codename: str
@@ -28,16 +28,16 @@ class Permission(BasePydanticModel):
     description: str
 
 
-class RolePermissionSchema(Role):
+class RolePermissionSchema(RoleSchema):
 
-    permissions: list[Permission]
+    permissions: list[PermissionSchema]
 
 
 class ListPermissionSchema(BasePydanticModel):
 
-    permissions: list[Permission]
+    permissions: list[PermissionSchema]
 
 
 class ListRoleOptionSchema(BasePydanticModel):
 
-    roles: list[RoleOption]
+    roles: list[RoleOptionSchema]
