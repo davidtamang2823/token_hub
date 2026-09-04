@@ -17,8 +17,10 @@ CAN_UPDATE_ORDER = "can_update_order"
 CAN_DELETE_ORDER = "can_delete_order"
 CAN_VIEW_ORDER = "can_view_order"
 
+CAN_CREATE_USER = "can_create_user"
 CAN_UPDATE_USER = "can_update_user"
 CAN_VIEW_USER = "can_view_user"
+CAN_DELETE_USER = "can_delete_user"
 
 CAN_CREATE_ROLE = "can_create_role"
 CAN_UPDATE_ROLE = "can_update_role"
@@ -79,9 +81,11 @@ STAFF_USER_PERMISSIONS: frozenset[str] = frozenset({
     CAN_UPDATE_TENANT,
     CAN_DELETE_TENANT,
 
+    CAN_CREATE_USER,
     CAN_UPDATE_USER,
     CAN_UPDATE_USER_EMAIL,
     CAN_VIEW_USER,
+    CAN_DELETE_USER,
 
     CAN_REMOVE_USER_FROM_TENANT,
     CAN_ADD_USER_TO_TENANT
@@ -132,9 +136,19 @@ ALL_PERMISSION_DETAILS: frozenset[Permission] = frozenset(
             codename=CAN_DELETE_ORDER,
         ),
         Permission(
+            name = "Can create user",
+            description = "Allow admin user to create new user without adding to tenant",
+            codename=CAN_CREATE_USER
+        ),
+        Permission(
             name="Can update user",
             description="Allows updating existing users within the tenant",
             codename=CAN_UPDATE_USER,
+        ),
+        Permission(
+            name="Can delete user",
+            description="Allow admin to delete user",
+            codename=CAN_DELETE_USER
         ),
         Permission(
             name="Can update user email",
