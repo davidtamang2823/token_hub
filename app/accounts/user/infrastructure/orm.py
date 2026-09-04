@@ -1,9 +1,9 @@
 import typing
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy import DateTime, String, ForeignKey
+from sqlalchemy import DateTime, String, ForeignKey, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from core.database import NullableAuditModelORM, TenantNullableAuditModelORM
+from core.database import NullableAuditModelORM, TenantNullableAuditModelORM, TenantAuditModelORM
 
 
 class UserORM(NullableAuditModelORM):
@@ -19,6 +19,9 @@ class UserORM(NullableAuditModelORM):
     verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
     verification_token: Mapped[str] = mapped_column(String(64),nullable=True, default=None)
     verification_token_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    new_password_verification_token: Mapped[str] = mapped_column(String(64), nullable=True, default=None)
+    new_password_verification_token_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    is_deleted: Mapped[bool] = mapped_column(default=False, server_default=false())
 
     tenants: Mapped[typing.List["TenantORM"]] = relationship(
         secondary="user_tenants",
@@ -26,6 +29,17 @@ class UserORM(NullableAuditModelORM):
         secondaryjoin="UserTenantORM.tenant_id == TenantORM.id",
         viewonly=True
     )
+
+class EmailChangeRequestORM(TenantAuditModelORM):
+    
+    __tablename__ = "email_change_requests"
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    old_email: Mapped[str] = mapped_column()
+    new_email: Mapped[str] = mapped_column()
+    new_email_verification_token: Mapped[str] = mapped_column(String(64),nullable=True, default=None)
+    new_email_verification_token_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    status: Mapped[int] = mapped_column()
 
 class UserTenantORM(TenantNullableAuditModelORM):
 
