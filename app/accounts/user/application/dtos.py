@@ -45,12 +45,25 @@ class UpdateUserNameDTO(DomainModel):
     def create(cls, first_name: str, last_name: str) -> "UpdateProfile":
         return cls(id=id, first_name=first_name, last_name=last_name)
 
-class UpdateUserEmailDTO(DomainModel):
-
-    user_id: UUID
-    email: EmailStr
+class RequestUserEmailChangeDTO(DomainModel):
+    new_email: EmailStr
 
 class UpdateUserStatusDTO(DomainModel):
 
     user_id: UUID
     is_active: bool
+
+class HandleUserEmailChangeRequestDTO(DomainModel):
+
+    user_id: UUID
+    is_approved: bool
+
+class UpdateEmailDTO(DomainModel):
+
+    new_email_verification_token: str
+
+class UpdateRoleDTO(DomainModel):
+
+    user_id: UUID
+    role_id: UUID
+    tenant_id: UUID | None = None
