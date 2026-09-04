@@ -25,7 +25,7 @@ class UnitOfWork:
             await self._session.rollback()
 
     def register_entity(self, entity: AggregateRoot) -> None:
-        self._tracked_entities.add(entity)
+        self._tracked_entities.append(entity)
 
     def _publish_events(self) -> None:
 
