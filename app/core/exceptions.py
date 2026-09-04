@@ -11,6 +11,8 @@ class ErrorType(StrEnum):
     TOKEN_EXPIRED = "token_expired"
     INVALID_TOKEN = "invalid_token"
     RESOURCE_IN_USE = "resource_in_use"
+    INVALID_STATE = "invalid_state"
+    VERIFICATION_COOLDOWN = "verification_cooldown"
 
 class AppException(Exception):
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -55,3 +57,19 @@ class ResourceInUseError(AppException):
     status_code = status.HTTP_409_CONFLICT
     error_type = ErrorType.RESOURCE_IN_USE
     message = "You cannot perform this operation resource has been used"
+
+class InvalidStateTransitionException(AppException):
+    status_code = status.HTTP_409_CONFLICT
+    error_type = ErrorType.INVALID_STATE
+    message = "Operation not valid for the resource's current state"
+
+
+class TokenExpiredException(AppException):
+    status_code = status.HTTP_410_GONE
+    error_type = ErrorType.TOKEN_EXPIRED
+    message = "Token has expired"
+
+class VerificationCooldownException(AppException):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    error_type = ErrorType.VERIFICATION_COOLDOWN
+    message = "Please wait before requesting another verification email"
