@@ -37,7 +37,6 @@ class Settings(BaseSettings):
     email_host_password: str
     email_from: str
     email_use_tls: bool
-    email_verification_token_expire_days: int
 
     #Fronend settings
     front_end_url: str
