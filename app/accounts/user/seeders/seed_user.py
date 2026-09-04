@@ -37,7 +37,8 @@ async def seed_user(email: str, password: str, first_name: str, last_name: str, 
                 last_name=last_name, 
                 is_staff=is_staff, 
                 is_active=is_active,
-                verified_at=datetime.datetime.now(tz=datetime.timezone.utc)
+                verified_at=datetime.datetime.now(tz=datetime.timezone.utc),
+                is_deleted=False,
             )
             session.add(new_user)
             await session.flush()
