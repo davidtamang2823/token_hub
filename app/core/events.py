@@ -40,11 +40,8 @@ class EventBus:
         return add_event
 
     def publish(self, events: list[BaseEvent]):
-        print("idddddddddddddddddddddddddd", id(self))
-        print("eventseeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", events)
         for event in events:
             event_callables = self._events.get(event.event_type, [])
-            print("aaaaaaaaaaaaaaaaaaaaaaaa", self._events, event_callables)
             for event_callable in event_callables:
                 event_callable(event)
 
