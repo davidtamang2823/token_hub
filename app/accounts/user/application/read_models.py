@@ -11,6 +11,7 @@ class UserReadModel(DomainModel):
     email: str
     is_active: bool
     is_staff: bool
-    role_id: UUID
-    role_name: str
+    is_deleted: bool
+    role_id: UUID | None = None
+    role_name: str | None = None
     verified_at: datetime | None = None
