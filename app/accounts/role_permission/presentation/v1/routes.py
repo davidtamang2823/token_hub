@@ -13,7 +13,7 @@ from core.constants.permissions import (
 )
 from accounts.role_permission.presentation.dependencies import get_role_permission_service
 from accounts.role_permission.application.services import AbstractRolePermissionService
-from accounts.role_permission.presentation.schemas import RolePermissionSchema, ListPermissionSchema, ListRoleOptionSchema
+from accounts.role_permission.presentation.schemas import RolePermissionSchema, ListPermissionSchema, ListRoleOptionSchema, RoleSchema, RoleOptionSchema, PermissionSchema
 from accounts.role_permission.domain import models as role_permission_domain
 
 router = APIRouter(
@@ -30,12 +30,12 @@ admin_router = APIRouter(
 
 def to_role_permission_schema(role: role_permission_domain.RoleModel, permissions: role_permission_domain.PermissionModel) -> RolePermissionSchema:
 
-    return schemas.RolePermissionSchema(
+    return RolePermissionSchema(
         id = role.id,
         name = role.name,
         is_system_role = role.is_system_role,
         permissions = [
-            schemas.Permission(
+            PermissionSchema(
                 id = permission.id,
                 codename = permission.codename,
                 name = permission.name,
@@ -79,7 +79,14 @@ async def list_role(
         "q": q
     }
 
-    return await role_permission_service.list_role(role_filters=role_filters, page=page, page_size=page_size)
+    total, roles =  await role_permission_service.list_role(role_filters=role_filters, page=page, page_size=page_size)
+    return Pagination(
+        page=page,
+        page_size=page_size,
+        total=total,
+        data= [RoleSchema.model_validate(role) for role in roles]
+    )
+
 
 @admin_router.get("/tenants/{tenant_id}/roles", dependencies=[Depends(require_permission([CAN_ADD_USER_TO_TENANT]))], response_model=ListRoleOptionSchema)
 async def list_role_option(
@@ -91,7 +98,7 @@ async def list_role_option(
 ): 
 
     roles =  await role_permission_service.list_role_option(page=page, page_size=page_size, tenant_id=tenant_id)
-    return ListRoleOptionSchema(roles=[schemas.RoleOption.model_validate(role) for role in roles])
+    return ListRoleOptionSchema(roles=[RoleOptionSchema.model_validate(role) for role in roles])
 
 
 @router.get("/permissions", dependencies=[Depends(require_permission([CAN_CREATE_ROLE, CAN_UPDATE_ROLE]))], response_model=ListPermissionSchema)
@@ -103,7 +110,7 @@ async def list_permission(
 ):
     permission_filters = {"q": q}
     permissions = await role_permission_service.list_permission(permission_filters=permission_filters)
-    return ListPermissionSchema(permissions=[schemas.Permission.model_validate(permission) for permission in permissions])
+    return ListPermissionSchema(permissions=[PermissionSchema.model_validate(permission) for permission in permissions])
 
 @router.post("/roles", dependencies=[Depends(require_permission([CAN_CREATE_ROLE]))], response_model=RolePermissionSchema)
 @admin_router.post("/roles", dependencies=[Depends(require_permission([CAN_CREATE_ROLE]))], response_model=RolePermissionSchema)
