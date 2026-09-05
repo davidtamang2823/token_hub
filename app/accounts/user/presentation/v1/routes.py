@@ -124,8 +124,6 @@ async def update_email(
         "message": "User email has been updated, please login with new email"
     }
 
-@router.put("/update-name")
-@admin_router.put("/update-name")
 @router.put("/update-name/{user_id}", dependencies=[Depends(require_permission([CAN_UPDATE_USER]))])
 @admin_router.put("/update-name/{user_id}", dependencies=[Depends(require_permission([CAN_UPDATE_USER]))])
 async def update_user_name(
@@ -134,13 +132,10 @@ async def update_user_name(
     user_service: Annotated[AbstractUserService, Depends(get_user_service)],
     user_id: UUID | None = None
 ):
-    await user_service.update_user_name(user_dto=update_user_name, user_id=user_id)
-    return {
-        "message": "User name has been updated"
-    }
+    reponse_data = await user_service.update_user_name(user_dto=update_user_name, user_id=user_id)
+    return reponse_data
 
 
-@router.put("/update-status", dependencies=[Depends(require_permission([CAN_UPDATE_USER]))])
 @admin_router.put("/update-status", dependencies=[Depends(require_permission([CAN_UPDATE_USER]))])
 async def update_user_status(
     request: Request,
@@ -149,7 +144,7 @@ async def update_user_status(
 ):
     await user_service.update_user_status(update_user_status)
     return {
-        "message": "User name has been updated"
+        "message": "User status has been updated"
     }
 
 @router.put("/update-role", dependencies=[Depends(require_permission([CAN_UPDATE_USER]))])
