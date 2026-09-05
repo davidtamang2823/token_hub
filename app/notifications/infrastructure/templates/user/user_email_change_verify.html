@@ -1,0 +1,50 @@
+<!-- notifications/infrastructure/templates/user_email_change_verify.html -->
+{% extends "base.html" %}
+
+{% block title %}Verify your new email on {{ app_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* progressive enhancement only — critical styling stays inline below,
+     since Outlook desktop ignores <style> blocks */
+  .verify-email-btn:hover { background:#4338ca; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <span style="display:inline-block; padding:4px 10px; border-radius:12px; background-color:#eef0ff; color:#4338ca; font-size:12px; font-weight:bold;">Verify your new email</span>
+
+  <h1 style="margin:16px 0; font-size:20px; color:#222222;">Confirm Your New Email Address</h1>
+
+  <p style="margin:0 0 24px; font-size:14px; line-height:22px; color:#444444;">
+    Your email change request was approved. To finish updating your {{ app_name }} account,
+    verify this email address by clicking below.
+  </p>
+
+  <table role="presentation" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="border-radius:6px; background-color:#4f46e5;">
+        <a href="{{ new_email_verification_url }}" class="verify-email-btn"
+           style="display:inline-block; padding:12px 24px; font-size:14px; font-weight:bold; background:#4f46e5; color:#ffffff; text-decoration:none; border-radius:6px;">
+          Verify New Email
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:24px 0 0; font-size:13px; line-height:20px; color:#8a8f9c;">
+    If the button above doesn't work, copy and paste this link into your browser:<br>
+    <span style="color:#4f46e5; word-break:break-all;">{{ new_email_verification_url }}</span>
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fff8e6; border-radius:6px; margin:24px 0 0; border:1px solid #f0e2b6;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0; font-size:13px; line-height:20px; color:#8a6d1f;">
+          <strong>Didn't request this?</strong> If you didn't initiate an email change, you can
+          ignore this message — your account email won't change unless this link is used.
+        </p>
+      </td>
+    </tr>
+  </table>
+{% endblock %}
