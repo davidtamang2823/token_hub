@@ -1,6 +1,6 @@
 import abc
 from uuid import UUID
-from sqlalchemy import select, exists, delete, or_, func, update
+from sqlalchemy import select, exists, delete, or_, func, update, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from accounts.user.infrastructure import orm as user_orm
@@ -127,15 +127,26 @@ class UserRepository(AbstractUserRepository):
                 user_orm.UserORM.is_staff,
                 user_orm.UserTenantORM.role_id,
                 role_permission_orm.RoleORM.name.label("role_name"),
-                user_orm.UserORM.verified_at
+                user_orm.UserORM.verified_at,
+                user_orm.UserORM.is_deleted,
+                user_orm.EmailChangeRequestORM.new_email.label("pending_email_change_request"),
+                user_orm.EmailChangeRequestORM.status.label("pending_email_change_request_status")
             )
-            .join(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
-            .join(role_permission_orm.RoleORM, user_orm.UserTenantORM.role_id == role_permission_orm.RoleORM.id)
-            .where(user_orm.UserTenantORM.tenant_id == tenant_id)
-            .where(user_orm.UserORM.id == user_id)
+            .outerjoin(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
+            .outerjoin(role_permission_orm.RoleORM, user_orm.UserTenantORM.role_id == role_permission_orm.RoleORM.id)
+            .outerjoin(
+                user_orm.EmailChangeRequestORM, 
+                and_(
+                    user_orm.EmailChangeRequestORM.user_id == user_orm.UserORM.id,
+                    user_orm.EmailChangeRequestORM.status == EmailChangeRequestEnum.PENDING.value,
+                    user_orm.EmailChangeRequestORM.created_at > func.now() - user_domain.EMAIL_CHANGE_REQUEST_TTL,
+                )
+            )
+            .where(user_orm.UserTenantORM.tenant_id == tenant_id, user_orm.UserORM.id == user_id)
+            .distinct()
         )
         result = await self._session.execute(stmt)
-        user_orm_obj = result.scalar_one_or_none()
+        user_orm_obj = result.fetchone()
         return (
             read_models.UserReadModel(
                 id = user_orm_obj.id,
@@ -147,7 +158,9 @@ class UserRepository(AbstractUserRepository):
                 role_id=user_orm_obj.role_id,
                 role_name=user_orm_obj.role_name,
                 verified_at=user_orm_obj.verified_at,
-                is_deleted=user_orm_obj.is_deleted
+                is_deleted=user_orm_obj.is_deleted,
+                pending_email_change_request=user_orm_obj.pending_email_change_request,
+                pending_email_change_request_status=EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name if user_orm_obj.pending_email_change_request_status else None
             ) if user_orm_obj else None
         )
 
@@ -180,12 +193,23 @@ class UserRepository(AbstractUserRepository):
                 user_orm.UserTenantORM.role_id,
                 role_permission_orm.RoleORM.name.label("role_name"),
                 user_orm.UserORM.verified_at,
-                user_orm.UserORM.is_deleted
+                user_orm.UserORM.is_deleted,
+                user_orm.EmailChangeRequestORM.new_email.label("pending_email_change_request"),
+                user_orm.EmailChangeRequestORM.status.label("pending_email_change_request_status")
             )
             .outerjoin(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
             .outerjoin(role_permission_orm.RoleORM, user_orm.UserTenantORM.role_id == role_permission_orm.RoleORM.id)
-            .where(user_orm.UserORM.is_deleted == False)
+            .outerjoin(
+                user_orm.EmailChangeRequestORM, 
+                and_(
+                    user_orm.EmailChangeRequestORM.user_id == user_orm.UserORM.id,
+                    user_orm.EmailChangeRequestORM.status == EmailChangeRequestEnum.PENDING.value,
+                    user_orm.EmailChangeRequestORM.created_at > func.now() - user_domain.EMAIL_CHANGE_REQUEST_TTL,
+                ),
+            )
         )
+
+        stmt = stmt.where(user_orm.UserORM.is_deleted == False)
 
         if tenant_id:
             stmt = stmt.where(user_orm.UserTenantORM.tenant_id == tenant_id)
@@ -232,7 +256,9 @@ class UserRepository(AbstractUserRepository):
                 role_id=user_orm_obj.role_id,
                 role_name=user_orm_obj.role_name,
                 verified_at=user_orm_obj.verified_at,
-                is_deleted=user_orm_obj.is_deleted
+                is_deleted=user_orm_obj.is_deleted,
+                pending_email_change_request=user_orm_obj.pending_email_change_request,
+                pending_email_change_request_status=EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name if user_orm_obj.pending_email_change_request_status else None
             )
             for user_orm_obj in result.fetchall()
         ]
@@ -251,13 +277,14 @@ class UserRepository(AbstractUserRepository):
                 user_orm.UserORM.is_staff,
                 user_orm.UserTenantORM.role_id,
                 role_permission_orm.RoleORM.name.label("role_name"),
-                user_orm.UserORM.verified_at
+                user_orm.UserORM.verified_at,
+                user_orm.UserORM.is_deleted
             )
             .join(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
             .join(role_permission_orm.RoleORM, user_orm.UserTenantORM.role_id == role_permission_orm.RoleORM.id)
             .join(role_permission_orm.RolePermissionORM, role_permission_orm.RoleORM.id == role_permission_orm.RolePermissionORM.role_id)
             .join(role_permission_orm.PermissionORM, role_permission_orm.RolePermissionORM.permission_id == role_permission_orm.PermissionORM.id)
-            .where(user_orm.UserTenantORM.tenant_id == tenant_id, role_permission_orm.PermissionORM.name == permission_name)
+            .where(user_orm.UserTenantORM.tenant_id == tenant_id, role_permission_orm.PermissionORM.codename == permission_name, user_orm.UserORM.is_deleted == False)
             .distinct(user_orm.UserORM.id)
         )
 
@@ -432,19 +459,21 @@ class UserRepository(AbstractUserRepository):
         )
 
         user_email_request_orm_obj = (await self._session.execute(stmt)).scalar_one_or_none()
-
         if user_email_request_orm_obj is None:
             user_email_request_orm_obj = user_orm.EmailChangeRequestORM(
                 id = user_email_request.id,
                 user_id = user_email_request.user_id,
                 old_email = user_email_request.old_email,
                 new_email = user_email_request.new_email,
+                tenant_id = user_email_request.tenant_id,
+                created_by_id = user_email_request.created_by_id,
             )
             self._session.add(user_email_request_orm_obj)
 
         user_email_request_orm_obj.status = user_email_request.status.value
         user_email_request_orm_obj.new_email_verification_token = user_email_request.new_email_verification_token
         user_email_request_orm_obj.new_email_verification_token_created_at = user_email_request.new_email_verification_token_created_at
+        user_email_request_orm_obj.updated_by_id = user_email_request.updated_by_id
         
 
 
