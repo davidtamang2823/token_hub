@@ -72,6 +72,16 @@ class UserEmailChangeRequestRejectedEvent(BaseEvent):
 
         self.event_type = EventTypes.USER_EMAIL_CHANGE_REQUEST_REJECTED
 
+@dataclass
+class UserEmailChangeVerifyEvent(BaseEvent):
+
+    send_to: str
+    new_email_verification_token: str
+
+    def __post_init__(self):
+
+        self.event_type = EventTypes.USER_EMAIL_CHANGE_VERIFY
+
 
 @dataclass
 class UserVerifyEmailChangeEvent(BaseEvent):

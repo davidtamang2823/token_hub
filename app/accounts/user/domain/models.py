@@ -1,7 +1,15 @@
 from datetime import datetime, timezone, timedelta
 from uuid import UUID, uuid4
 from pydantic import EmailStr, Field, field_validator
-from accounts.user.domain.events import UserAddedToTenantEvent, UserRegisteredEvent, UserEmailChangeRequestEvent, UserEmailChangeRequestApprovedEvent, UserEmailChangeRequestRejectedEvent, UserVerifyEmailChangeEvent
+from accounts.user.domain.events import (
+    UserAddedToTenantEvent, 
+    UserRegisteredEvent, 
+    UserEmailChangeRequestEvent, 
+    UserEmailChangeRequestApprovedEvent, 
+    UserEmailChangeRequestRejectedEvent, 
+    UserVerifyEmailChangeEvent, 
+    UserEmailChangeVerifyEvent
+)
 from core.events import BaseEvent
 from core.domain import AggregateRoot
 from accounts.user.domain.enumns.email_change_request_enum import EmailChangeRequestEnum
@@ -85,6 +93,9 @@ class EmailChangeRequestModel(AggregateRoot):
     new_email_verification_token: str | None = None
     new_email_verification_token_created_at: datetime | None = None
     status: EmailChangeRequestEnum
+    tenant_id: UUID | None = None
+    created_by_id: UUID | None = None
+    updated_by_id: UUID | None = None
 
     @classmethod
     def create(
@@ -105,9 +116,10 @@ class EmailChangeRequestModel(AggregateRoot):
             id=uuid4(),
             old_email=old_email,
             new_email=new_email,
-            new_email_verification_token=new_email_verification_token,
-            new_email_verification_token_created_at=new_email_verification_token_created_at,
             status=status,
+            user_id=user_id,
+            tenant_id=tenant_id,
+            created_by_id=user_id,
             events = [
                 UserEmailChangeRequestEvent(
                     send_to=send_to,
@@ -115,7 +127,6 @@ class EmailChangeRequestModel(AggregateRoot):
                     new_email=new_email,
                     send_by_first_name=send_by_first_name,
                     send_by_last_name=send_by_last_name,
-                    user_id=user_id,
                     tenant_id=tenant_id,
                     tenant_code=tenant_code,
                     tenant_name=tenant_name
@@ -155,6 +166,13 @@ class EmailChangeRequestModel(AggregateRoot):
                 )
             )
 
+            events.append(
+                UserEmailChangeVerifyEvent(
+                    send_to=new_email,
+                    new_email_verification_token=new_email_verification_token
+                )
+            )
+
         elif status == EmailChangeRequestEnum.REJECTED:
             events.append(
                 UserEmailChangeRequestRejectedEvent(
@@ -176,7 +194,9 @@ class EmailChangeRequestModel(AggregateRoot):
             new_email_verification_token_created_at=new_email_verification_token_created_at,
             user_id=user_id,
             status=status,
-            events = events
+            events = events,
+            tenant_id=tenant_id,
+            updated_by_id=user_id,
         )
 
 
@@ -203,8 +223,8 @@ class EmailChangeRequestModel(AggregateRoot):
             id=email_change_request_id,
             old_email=old_email,
             new_email=new_email,
-            new_email_verification_token=None,
-            new_email_verification_token_created_at=None,
+            new_email_verification_token=new_email_verification_token,
+            new_email_verification_token_created_at=new_email_verification_token_created_at,
             user_id=user_id,
             status=status,
             events=events,

@@ -82,3 +82,18 @@ def send_user_email_changed_task(payload: dict) -> None:
         template_name="user/user_email_changed.html",
         context=payload
     )
+
+@celery_app.task
+def send_user_email_change_verify_task(payload: dict) -> None:
+    
+    reciever = payload.get("send_to")
+    subject = "Verify Your New Email Address"
+    new_email_verification_url = f"{settings.front_end_url}/verify-email-change?token={payload.get("new_email_verification_token")}"
+    payload["new_email_verification_url"] = new_email_verification_url
+    payload["app_name"] = settings.app_name
+    email_sender.send_template(
+        to=reciever,
+        subject=subject,
+        template_name="user/user_email_change_verify.html",
+        context=payload
+    )

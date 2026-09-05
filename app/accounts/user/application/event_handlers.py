@@ -4,7 +4,8 @@ from accounts.user.domain.events import (
     UserEmailChangeRequestApprovedEvent, 
     UserEmailChangeRequestEvent, 
     UserEmailChangeRequestRejectedEvent, 
-    UserVerifyEmailChangeEvent
+    UserVerifyEmailChangeEvent,
+    UserEmailChangeVerifyEvent
 )
 from accounts.user.infrastructure.tasks import (
     send_welcome_verify_email_task, 
@@ -12,7 +13,8 @@ from accounts.user.infrastructure.tasks import (
     send_user_email_change_request_approved_task,
     send_user_email_change_request_rejected_task,
     send_user_email_changed_task,
-    send_user_email_change_request_task
+    send_user_email_change_request_task,
+    send_user_email_change_verify_task
 )
 from core.events import event_bus, EventTypes
 
@@ -45,3 +47,8 @@ def send_user_email_change_request_rejected_handler(event: UserEmailChangeReques
 def send_user_email_changed_handler(event: UserEmailChangeRequestEvent):
     payload = event.to_dict()
     send_user_email_changed_task.apply_async(args=[payload])
+
+@event_bus.subscribe(event_type=EventTypes.USER_EMAIL_CHANGE_VERIFY)
+def send_user_email_change_verify_handler(event: UserEmailChangeVerifyEvent):
+    payload = event.to_dict()
+    send_user_email_change_verify_task.apply_async(args=[payload])
