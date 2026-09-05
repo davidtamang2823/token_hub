@@ -2,7 +2,6 @@ from uuid import UUID
 from datetime import datetime
 from core.domain import DomainModel
 
-
 class UserReadModel(DomainModel):
 
     id: UUID
@@ -15,3 +14,5 @@ class UserReadModel(DomainModel):
     role_id: UUID | None = None
     role_name: str | None = None
     verified_at: datetime | None = None
+    pending_email_change_request: str | None = None
+    pending_email_change_request_status: str | None = None
