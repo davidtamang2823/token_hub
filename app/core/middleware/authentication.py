@@ -1,4 +1,5 @@
 from uuid import UUID
+import logging
 from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -16,7 +17,7 @@ from core.exceptions import (
 )
 
 from accounts.user.infrastructure.orm import UserORM, UserTenantORM
-from accounts.role_permission.infrastructure.orm import PermissionORM, RolePermissionORM
+from accounts.role_permission.infrastructure.orm import PermissionORM, RolePermissionORM, RoleORM
 
 EXEMPT_PATHS = {
     ("/api/v1/auth/login", "POST"),
@@ -134,9 +135,10 @@ class JWTAuthenticationMiddleware(BaseHTTPMiddleware):
             return None
 
         stmt = (
-            select(PermissionORM.codename, RolePermissionORM.role_id)
+            select(PermissionORM.codename, RolePermissionORM.role_id, RoleORM.name)
             .join(RolePermissionORM, RolePermissionORM.permission_id == PermissionORM.id)
             .join(UserTenantORM, UserTenantORM.role_id == RolePermissionORM.role_id)
+            .join(RoleORM, RoleORM.id == UserTenantORM.role_id)
             .where(UserTenantORM.user_id == user_id)
         )
 
@@ -151,13 +153,19 @@ class JWTAuthenticationMiddleware(BaseHTTPMiddleware):
         user_role_permissions = result.fetchall()
         permissions = [row[0] for row in user_role_permissions]
 
-        return CurrentUser(
+        current_user = CurrentUser(
             id=user_orm_obj.id,
+            first_name=user_orm_obj.first_name,
+            last_name=user_orm_obj.last_name,
             email=user_orm_obj.email,
             is_active=user_orm_obj.is_active,
             is_staff=user_orm_obj.is_staff,
             permissions=permissions,
             tenant_id=tenant_id,
             role_id= user_role_permissions[0][1] if permissions else None,
+            role_name= user_role_permissions[0][2] if permissions else None,
             verified_at=user_orm_obj.verified_at
         )
+
+        logging.info(f"Current user: {current_user}")
+        return current_user
