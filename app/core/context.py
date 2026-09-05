@@ -5,10 +5,13 @@ from dataclasses import dataclass
 @dataclass
 class CurrentUser:
     id: UUID
+    first_name: str
+    last_name: str
     email: str
     is_active: bool
     is_staff: bool
     permissions: list[str]
     role_id: UUID | None = None
+    role_name: str | None = None
     tenant_id: UUID | None = None
     verified_at: datetime | None = None
