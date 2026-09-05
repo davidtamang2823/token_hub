@@ -66,6 +66,7 @@ class EventTypes:
     USER_EMAIL_CHANGED = "user.email_changed"
     USER_RESEND_VERIFICATION = "user.resend_verification"
     USER_PASSWORD_RESET_REQUEST = "user.password_reset_request"
+    USER_EMAIL_CHANGE_VERIFY = "user.email_change_verify"
 
     # tenant events
     TENANT_CREATED = "tenant.created"
