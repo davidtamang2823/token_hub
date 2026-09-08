@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy import DateTime, String, ForeignKey, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from core.database import NullableAuditModelORM, TenantNullableAuditModelORM, TenantAuditModelORM
+from core.database import NullableAuditModelORM, TenantNullableAuditModelORM, AuditModelORM
 
 
 class UserORM(NullableAuditModelORM):
@@ -30,7 +30,7 @@ class UserORM(NullableAuditModelORM):
         viewonly=True
     )
 
-class EmailChangeRequestORM(TenantAuditModelORM):
+class EmailChangeRequestORM(AuditModelORM):
     
     __tablename__ = "email_change_requests"
 
