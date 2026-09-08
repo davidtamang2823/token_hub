@@ -21,11 +21,19 @@ class AbstractUserRepository(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def get_user_with_role(self, user_id: UUID, tenant_id: UUID) -> read_models.UserReadModel | None:
+    async def get_user(self, user_id: UUID, show_pending_email_change_request: bool = False) -> read_models.UserReadModel | None:
+        ...
+
+    @abc.abstractmethod
+    async def get_user_with_role(self, user_id: UUID, tenant_id: UUID | None, show_pending_email_change_request: bool = False) -> read_models.UserReadModel | None:
         ...
 
     @abc.abstractmethod
     async def list_user(self, user_filters: dict, limit: int, offset: int, exclude_id: UUID | None = None) -> list[user_domain.UserModel]:
+        ...
+
+    @abc.abstractmethod
+    async def list_user_with_role(self, user_filters: dict, limit: int, offset: int, exclude_id: UUID | None = None) -> list[user_domain.UserModel]:
         ...
 
     @abc.abstractmethod
@@ -50,10 +58,6 @@ class AbstractUserRepository(abc.ABC):
     @abc.abstractmethod
     async def exists_in_tenant(self,  user_id:UUID, tenant_id: UUID) -> bool:
         ...
-
-    # @abc.abstractmethod
-    # async def exists_tenant_id(self, tenant_id: UUID) -> bool:
-    #     ...
 
     @abc.abstractmethod
     async def user_exists_in_tenant(self, user_id: UUID, tenant_id: UUID) -> bool: ...
@@ -115,7 +119,56 @@ class UserRepository(AbstractUserRepository):
         return self._to_user_domain(user_orm_obj)
 
 
-    async def get_user_with_role(self, user_id: UUID, tenant_id: UUID) -> read_models.UserReadModel | None:
+    async def get_user(self, user_id: UUID, show_pending_email_change_request: bool = False) -> read_models.UserReadModel | None:
+        
+        stmt = (
+            select(
+                user_orm.UserORM.id,
+                user_orm.UserORM.first_name,
+                user_orm.UserORM.last_name,
+                user_orm.UserORM.email,
+                user_orm.UserORM.is_active,
+                user_orm.UserORM.is_staff,
+                user_orm.UserORM.verified_at,
+                user_orm.UserORM.is_deleted,
+                user_orm.EmailChangeRequestORM.new_email.label("pending_email_change_request"),
+                user_orm.EmailChangeRequestORM.status.label("pending_email_change_request_status")
+            )
+            .outerjoin(
+                user_orm.EmailChangeRequestORM, 
+                and_(
+                    user_orm.EmailChangeRequestORM.user_id == user_orm.UserORM.id,
+                    user_orm.EmailChangeRequestORM.status == EmailChangeRequestEnum.PENDING.value,
+                    user_orm.EmailChangeRequestORM.created_at > func.now() - user_domain.EMAIL_CHANGE_REQUEST_TTL,
+                )
+            )
+            .where(user_orm.UserORM.id == user_id)
+            .distinct()
+        )
+
+
+        result = await self._session.execute(stmt)
+        user_orm_obj = result.fetchone()
+        return (
+            read_models.UserReadModel(
+                id = user_orm_obj.id,
+                email = user_orm_obj.email,
+                first_name = user_orm_obj.first_name,
+                last_name = user_orm_obj.last_name,
+                is_active = user_orm_obj.is_active,
+                is_staff=user_orm_obj.is_staff,
+                verified_at=user_orm_obj.verified_at,
+                is_deleted=user_orm_obj.is_deleted,
+                pending_email_change_request=user_orm_obj.pending_email_change_request if show_pending_email_change_request else None,
+                pending_email_change_request_status=(
+                    EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name
+                    if user_orm_obj.pending_email_change_request_status and show_pending_email_change_request
+                    else None
+                )
+            ) if user_orm_obj else None
+        )
+
+    async def get_user_with_role(self, user_id: UUID, tenant_id: UUID | None, show_pending_email_change_request: bool = False) -> read_models.UserReadModel | None:
 
         stmt = (
             select(
@@ -145,6 +198,7 @@ class UserRepository(AbstractUserRepository):
             .where(user_orm.UserTenantORM.tenant_id == tenant_id, user_orm.UserORM.id == user_id)
             .distinct()
         )
+
         result = await self._session.execute(stmt)
         user_orm_obj = result.fetchone()
         return (
@@ -159,8 +213,12 @@ class UserRepository(AbstractUserRepository):
                 role_name=user_orm_obj.role_name,
                 verified_at=user_orm_obj.verified_at,
                 is_deleted=user_orm_obj.is_deleted,
-                pending_email_change_request=user_orm_obj.pending_email_change_request,
-                pending_email_change_request_status=EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name if user_orm_obj.pending_email_change_request_status else None
+                pending_email_change_request=user_orm_obj.pending_email_change_request if show_pending_email_change_request else None,
+                pending_email_change_request_status=(
+                    EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name
+                    if user_orm_obj.pending_email_change_request_status and show_pending_email_change_request
+                    else None
+                )
             ) if user_orm_obj else None
         )
 
@@ -176,10 +234,10 @@ class UserRepository(AbstractUserRepository):
 
     async def list_user(self, user_filters: dict, limit: int, offset: int, exclude_id: UUID | None = None) -> tuple[int, list[read_models.UserReadModel]]:
         
-        tenant_id = user_filters.get("tenant_id")
         is_staff = user_filters.get("is_staff")
         is_active = user_filters.get("is_active")
         search_key = user_filters.get("q")
+        show_pending_email_change_request = user_filters.get("show_pending_email_change_request", False)
         drop_down = user_filters.get("drop_down")
 
         stmt = (
@@ -190,29 +248,21 @@ class UserRepository(AbstractUserRepository):
                 user_orm.UserORM.email,
                 user_orm.UserORM.is_active,
                 user_orm.UserORM.is_staff,
-                user_orm.UserTenantORM.role_id,
-                role_permission_orm.RoleORM.name.label("role_name"),
                 user_orm.UserORM.verified_at,
                 user_orm.UserORM.is_deleted,
                 user_orm.EmailChangeRequestORM.new_email.label("pending_email_change_request"),
                 user_orm.EmailChangeRequestORM.status.label("pending_email_change_request_status")
             )
-            .outerjoin(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
-            .outerjoin(role_permission_orm.RoleORM, user_orm.UserTenantORM.role_id == role_permission_orm.RoleORM.id)
             .outerjoin(
                 user_orm.EmailChangeRequestORM, 
                 and_(
                     user_orm.EmailChangeRequestORM.user_id == user_orm.UserORM.id,
                     user_orm.EmailChangeRequestORM.status == EmailChangeRequestEnum.PENDING.value,
                     user_orm.EmailChangeRequestORM.created_at > func.now() - user_domain.EMAIL_CHANGE_REQUEST_TTL,
-                ),
+                )
             )
+            .where(user_orm.UserORM.is_deleted == False)
         )
-
-        stmt = stmt.where(user_orm.UserORM.is_deleted == False)
-
-        if tenant_id:
-            stmt = stmt.where(user_orm.UserTenantORM.tenant_id == tenant_id)
 
         if is_staff is not None:
             stmt = stmt.where(user_orm.UserORM.is_staff == is_staff)
@@ -253,12 +303,104 @@ class UserRepository(AbstractUserRepository):
                 last_name = user_orm_obj.last_name,
                 is_active = user_orm_obj.is_active,
                 is_staff=user_orm_obj.is_staff,
+                verified_at=user_orm_obj.verified_at,
+                is_deleted=user_orm_obj.is_deleted,
+                pending_email_change_request=user_orm_obj.pending_email_change_request if show_pending_email_change_request else None,
+                pending_email_change_request_status=(
+                    EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name
+                    if user_orm_obj.pending_email_change_request_status and show_pending_email_change_request
+                    else None
+                )
+            )
+            for user_orm_obj in result.fetchall()
+        ]
+
+        return total, users
+
+
+
+    async def list_user_with_role(self, user_filters: dict, limit: int, offset: int, exclude_id: UUID | None = None) -> tuple[int, list[read_models.UserReadModel]]:
+        
+        tenant_id = user_filters.get("tenant_id")
+        is_staff = user_filters.get("is_staff")
+        is_active = user_filters.get("is_active")
+        search_key = user_filters.get("q")
+        show_pending_email_change_request = user_filters.get("show_pending_email_change_request", False)
+
+        stmt = (
+            select(
+                user_orm.UserORM.id,
+                user_orm.UserORM.first_name,
+                user_orm.UserORM.last_name,
+                user_orm.UserORM.email,
+                user_orm.UserORM.is_active,
+                user_orm.UserORM.is_staff,
+                user_orm.UserTenantORM.role_id,
+                role_permission_orm.RoleORM.name.label("role_name"),
+                user_orm.UserORM.verified_at,
+                user_orm.UserORM.is_deleted,
+                user_orm.EmailChangeRequestORM.new_email.label("pending_email_change_request"),
+                user_orm.EmailChangeRequestORM.status.label("pending_email_change_request_status")
+            )
+            .outerjoin(user_orm.UserTenantORM, user_orm.UserORM.id == user_orm.UserTenantORM.user_id)
+            .outerjoin(role_permission_orm.RoleORM, user_orm.UserTenantORM.role_id == role_permission_orm.RoleORM.id)
+            .outerjoin(
+                user_orm.EmailChangeRequestORM, 
+                and_(
+                    user_orm.EmailChangeRequestORM.user_id == user_orm.UserORM.id,
+                    user_orm.EmailChangeRequestORM.status == EmailChangeRequestEnum.PENDING.value,
+                    user_orm.EmailChangeRequestORM.created_at > func.now() - user_domain.EMAIL_CHANGE_REQUEST_TTL,
+                )
+            )
+        )
+
+        stmt = stmt.where(user_orm.UserORM.is_deleted == False, user_orm.UserTenantORM.tenant_id == tenant_id)
+
+        if is_staff is not None:
+            stmt = stmt.where(user_orm.UserORM.is_staff == is_staff)
+
+        if is_active is not None:
+            stmt = stmt.where(user_orm.UserORM.is_active == is_active)
+
+        if search_key:
+            stmt = stmt.where(
+                or_(
+                    user_orm.UserORM.first_name.istartswith(search_key),
+                    user_orm.UserORM.last_name.istartswith(search_key),
+                    user_orm.UserORM.email.istartswith(search_key)
+                )
+            )
+
+        if exclude_id:
+            stmt = stmt.where(user_orm.UserORM.id != exclude_id)
+
+        total_count_stmt = (
+            select(func.count()).select_from(stmt.subquery())
+        )
+        total = (await self._session.execute(total_count_stmt)).scalar()
+        stmt = stmt.order_by(user_orm.UserORM.first_name, user_orm.UserORM.last_name, user_orm.UserORM.email).distinct()
+
+
+        result = await self._session.execute(stmt)
+
+        users = [
+            read_models.UserReadModel(
+                id = user_orm_obj.id,
+                email = user_orm_obj.email,
+                first_name = user_orm_obj.first_name,
+                last_name = user_orm_obj.last_name,
+                is_active = user_orm_obj.is_active,
+                is_staff=user_orm_obj.is_staff,
                 role_id=user_orm_obj.role_id,
                 role_name=user_orm_obj.role_name,
                 verified_at=user_orm_obj.verified_at,
                 is_deleted=user_orm_obj.is_deleted,
-                pending_email_change_request=user_orm_obj.pending_email_change_request,
-                pending_email_change_request_status=EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name if user_orm_obj.pending_email_change_request_status else None
+                pending_email_change_request=user_orm_obj.pending_email_change_request if show_pending_email_change_request else None,
+                pending_email_change_request_status=(
+                    EmailChangeRequestEnum(user_orm_obj.pending_email_change_request_status).name
+                    if user_orm_obj.pending_email_change_request_status and show_pending_email_change_request
+                    else None
+                )
             )
             for user_orm_obj in result.fetchall()
         ]
@@ -465,7 +607,6 @@ class UserRepository(AbstractUserRepository):
                 user_id = user_email_request.user_id,
                 old_email = user_email_request.old_email,
                 new_email = user_email_request.new_email,
-                tenant_id = user_email_request.tenant_id,
                 created_by_id = user_email_request.created_by_id,
             )
             self._session.add(user_email_request_orm_obj)
