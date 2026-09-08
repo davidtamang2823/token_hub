@@ -40,11 +40,12 @@ async def list_user(
     request: Request, 
     user_service: Annotated[AbstractUserService, Depends(get_user_service)], 
     tenant_id: UUID | None = None, 
-    is_active: bool | None = None, 
+    is_active: bool | None = None,
     q: str | None = None,
     page: int = DEFAULT_PAGE,
     page_size: int = DEFAULT_PAGE_SIZE,
-    drop_down: bool = False
+    drop_down: bool = False,
+    is_staff: bool | None = None,
 ):
 
     user_filters = {
@@ -52,27 +53,28 @@ async def list_user(
         "is_active": is_active,
         "q": q,
         "drop_down": drop_down,
+        "is_staff": is_staff,
     }
 
     paginated_response = await user_service.list_user(user_filters=user_filters, page=page, page_size=page_size)
     return paginated_response
 
-
-@admin_router.get("/{me}")
-async def retrive_user(
+@router.get("/me")
+@admin_router.get("/me")
+async def retrieve_current_user(
     request: Request, 
     user_service: Annotated[AbstractUserService, Depends(get_user_service)],
     current_user: Annotated[CurrentUser, Depends(get_current_user)]
 ):
-    response_data = await user_service.retrive_user(current_user.id)
+    response_data = await user_service.retrieve_user(current_user.id)
     return response_data
 
 
 @router.get("/{user_id}", dependencies=[Depends(require_permission([CAN_VIEW_USER]))])
 @admin_router.get("/{user_id}", dependencies=[Depends(require_permission([CAN_VIEW_USER]))])
-async def retrieve_user(request: Request, user_id: UUID, user_service: Annotated[AbstractUserService, Depends(get_user_service)]):
+async def retrieve_user(request: Request, user_id: UUID, user_service: Annotated[AbstractUserService, Depends(get_user_service)], tenant_id: UUID | None = None):
 
-    response_data = await user_service.retrive_user(user_id=user_id)
+    response_data = await user_service.retrieve_user(user_id=user_id, tenant_id=tenant_id)
     return response_data
 
 @router.post("", dependencies=[Depends(require_permission([CAN_ADD_USER_TO_TENANT]))])
@@ -83,7 +85,7 @@ async def add_user_to_tenant(request: Request, user_service: Annotated[AbstractU
     await user_service.add_user_to_tenant(data = request_data)
     return {"message": "User added to tenant successfully"}
 
-@admin_router.post("", dependencies=[Depends(require_permission([CAN_CREATE_USER]))])
+@admin_router.post("/create-user", dependencies=[Depends(require_permission([CAN_CREATE_USER]))])
 async def create_user(request: Request, user_service: Annotated[AbstractUserService, Depends(get_user_service)]):
     request_data = await request.json()
     await user_service.create_user(data=request_data)
@@ -96,8 +98,6 @@ async def request_user_email_change(request: Request, request_email_change: dtos
     await user_service.request_user_email_change(email_change=request_email_change)
     return {"message": "User email change request has been sent"}
 
-@router.put("/approve-email-change-request", dependencies=[Depends(require_permission([CAN_UPDATE_USER_EMAIL]))])
-@router.put("/reject-email-change-request", dependencies=[Depends(require_permission([CAN_UPDATE_USER_EMAIL]))])
 @admin_router.put("/approve-email-change-request", dependencies=[Depends(require_permission([CAN_UPDATE_USER_EMAIL]))])
 @admin_router.put("/reject-email-change-request", dependencies=[Depends(require_permission([CAN_UPDATE_USER_EMAIL]))])
 async def handle_user_email_change_request(
