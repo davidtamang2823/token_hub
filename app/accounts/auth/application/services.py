@@ -55,7 +55,13 @@ class AuthService(AbstractAuthService):
             )
         ):
             raise UnauthorizedException("Invalid email or password")
+
+        if existing_user.verified_at is None:
+            raise UnauthorizedException("User is not verified")
         
+        if not existing_user.is_active:
+            raise UnauthorizedException("User is not active")
+
         return {
             "access_token":self._token_handler.create_access_token(
                 user_id=existing_user.id
@@ -80,6 +86,9 @@ class AuthService(AbstractAuthService):
         if not existing_user:
             raise UnauthorizedException("Invalid refresh token")
         
+        if not existing_user.is_active:
+            raise UnauthorizedException("User is not active")
+
         return{
             "access_token": self._token_handler.create_access_token(
                 user_id=existing_user.id
