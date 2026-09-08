@@ -89,19 +89,7 @@ class JWTAuthenticationMiddleware(BaseHTTPMiddleware):
                         "message": "User not found",
                     }
                 )
-
-            if not current_user.is_active:
-                if not current_user.verified_at:
-                    message = "User not verified."
-                else:
-                    message = "User has been blocked."
-                return JSONResponse(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={
-                        "error_type": ErrorType.UNAUTHORIZED,
-                        "message": message,
-                    }
-                )            
+           
             request.state.current_user = current_user
 
         except UnauthorizedException as e:
