@@ -58,7 +58,6 @@ USER_PERMISSIONS: frozenset[str] = frozenset({
     CAN_DELETE_ORDER,
     
     CAN_UPDATE_USER,
-    CAN_UPDATE_USER_EMAIL,
     CAN_VIEW_USER,
 
     CAN_VIEW_ROLE,
