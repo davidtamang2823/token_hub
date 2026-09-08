@@ -21,7 +21,7 @@ class AbstractUserService(abc.ABC):
     async def list_user(self, user_filters: dict, page: int, page_size: int) -> Pagination: ...
 
     @abc.abstractmethod
-    async def retrieve_user(self, user_id: UUID) -> read_models.UserReadModel: ...
+    async def retrieve_user(self, user_id: UUID, tenant_id: UUID | None = None) -> read_models.UserReadModel: ...
 
     @abc.abstractmethod
     async def add_user_to_tenant(self, data: typing.Dict) -> None: ...
@@ -66,21 +66,30 @@ class UserService(AbstractUserService):
 
     async def list_user(self, user_filters: dict, page: int, page_size: int) -> Pagination:
 
-        
         if not user_filters.get("tenant_id"):
             if not self._current_user.is_staff:
                 user_filters["tenant_id"] = self._current_user.tenant_id
                 user_filters["is_staff"] = False
         else:
-            self._tenant_access_policy.ensure_user_in_tenant(user_filters.get("tenant_id"))
+            await self._tenant_access_policy.ensure_user_in_tenant(user_filters.get("tenant_id"))
+        
+        if self._current_user.is_staff:
+            user_filters["show_pending_email_change_request"] = CAN_UPDATE_USER_EMAIL in self._current_user.permissions
         
         offset = (page - 1) * page_size
 
-        total_count, users = await self._uow.user_repository.list_user(
-            user_filters=user_filters,
-            limit=page_size,
-            offset=offset,
-        )
+        if user_filters.get("is_staff") is True or user_filters.get("tenant_id") is not None:
+            total_count, users = await self._uow.user_repository.list_user_with_role(
+                user_filters=user_filters,
+                limit=page_size,
+                offset=offset,
+            )
+        else:
+            total_count, users = await self._uow.user_repository.list_user(
+                user_filters=user_filters,
+                limit=page_size,
+                offset=offset,
+            )
 
         return Pagination(
             page=page,
@@ -91,12 +100,35 @@ class UserService(AbstractUserService):
 
     async def retrieve_user(self, user_id: UUID, tenant_id: UUID | None = None) -> read_models.UserReadModel:
 
-        user = await self._uow.user_repository.get_user_with_role(
-            user_id=user_id, 
-            tenant_id=self._current_user.tenant_id if not tenant_id else tenant_id
-        )
+        show_pending_email_change_request = False
+        tenant_id = self._current_user.tenant_id if not tenant_id else tenant_id
+
+        if self._current_user.is_staff:
+            show_pending_email_change_request = CAN_UPDATE_USER_EMAIL in self._current_user.permissions
+            await self._tenant_access_policy.ensure_user_in_tenant(tenant_id)
+        
+        if self._current_user.id == user_id:
+            show_pending_email_change_request = True
+        
+        existing_user = await self._uow.user_repository.get_by_id(user_id=user_id)
+        if not existing_user:
+            raise NotFoundException(f"User with id {user_id} not found")
+
+        if (self._current_user.is_staff and existing_user.is_staff) or tenant_id:
+            user = await self._uow.user_repository.get_user_with_role(
+                user_id=user_id, 
+                tenant_id=tenant_id,
+                show_pending_email_change_request=show_pending_email_change_request
+            )
+        else:
+            user = await self._uow.user_repository.get_user(
+                user_id=user_id,
+                show_pending_email_change_request=show_pending_email_change_request
+            )
+
         if not user:
             raise NotFoundException(f"User with id {user_id} not found")
+
         return user
 
     async def _create_user(self, data: dict) -> user_domain.UserModel:
@@ -151,7 +183,7 @@ class UserService(AbstractUserService):
                 user_id=user.id,
                 created_by_id=self._current_user.id
             )
-            self._uow.user_repository.add_user_to_tenant(user_tenant)
+            await self._uow.user_repository.add_user_to_tenant(user_tenant)
 
 
     async def add_user_to_tenant(self, data: dict) -> None:
@@ -190,7 +222,12 @@ class UserService(AbstractUserService):
         if await self._uow.user_repository.user_exists_in_tenant(user.id, tenant_id):
             raise AlreadyExistsException("User already exists in tenant")
 
-        if not  await self._uow.role_permission_repository.role_id_exists_in_tenant(role_id=role_id, tenant_id=tenant_id):
+        if self._current_user.is_staff:
+            role_exists = await self._uow.role_permission_repository.role_id_exists_in_tenant(role_id=user_tenant.role_id, tenant_id=None)
+        else:
+            role_exists = await self._uow.role_permission_repository.role_id_exists_in_tenant(role_id=user_tenant.role_id, tenant_id=tenant_id)
+
+        if not role_exists:
             raise NotFoundException(f"Role with id {role_id} not found in tenant with id {tenant_id}")
 
         await self._uow.user_repository.add_user_to_tenant(user_tenant=user_tenant)
@@ -199,7 +236,14 @@ class UserService(AbstractUserService):
     async def request_user_email_change(self, email_change: user_dtos.RequestUserEmailChangeDTO) -> None:
 
         users = await self._uow.user_repository.get_user_by_permission_name(CAN_UPDATE_USER_EMAIL, self._current_user.tenant_id)
-        tenant = await self._uow.tenant_repository.get_tenant_by_id(tenant_id=self._current_user.tenant_id)
+        existing_user_email_request = await self._uow.user_repository.get_user_email_request(user_id=self._current_user.id)
+
+        if (
+            existing_user_email_request and 
+            existing_user_email_request.status == user_domain.EmailChangeRequestEnum.PENDING and
+            not existing_user_email_request.is_expired
+        ):
+            raise InvalidStateTransitionException("User email change request is already pending, please wait for approval or reject the request")
 
         user_email_change_request = user_domain.EmailChangeRequestModel.create(
             old_email=self._current_user.email,
@@ -209,9 +253,6 @@ class UserService(AbstractUserService):
             send_by_first_name=self._current_user.first_name,
             send_by_last_name=self._current_user.last_name,
             user_id=self._current_user.id,
-            tenant_code = tenant.code if tenant else None,
-            tenant_id= self._current_user.tenant_id,
-            tenant_name= tenant.name if tenant else None,
         )
         
         if await self._uow.user_repository.email_exists(user_email_change_request.new_email):
@@ -231,10 +272,6 @@ class UserService(AbstractUserService):
         if existing_user_email_request.status != user_domain.EmailChangeRequestEnum.PENDING:
             raise InvalidStateTransitionException("User email change request is not pending")
 
-
-        tenant = await self._uow.tenant_repository.get_tenant_by_id(tenant_id=self._current_user.tenant_id)
-
-
         user_email_request = user_domain.EmailChangeRequestModel.update(
             email_change_request_id=existing_user_email_request.id,
             old_email=existing_user_email_request.old_email,
@@ -245,10 +282,7 @@ class UserService(AbstractUserService):
             send_by_first_name=self._current_user.first_name,
             send_by_last_name=self._current_user.last_name,
             new_email_verification_token=secrets.token_urlsafe(32),
-            new_email_verification_token_created_at=datetime.datetime.now(tz=datetime.timezone.utc),
-            tenant_code = tenant.code if tenant else None,
-            tenant_id= self._current_user.tenant_id,
-            tenant_name= tenant.name if tenant else None,
+            new_email_verification_token_created_at=datetime.datetime.now(tz=datetime.timezone.utc)
         )
 
         self._uow.register_entity(user_email_request)
@@ -273,9 +307,13 @@ class UserService(AbstractUserService):
 
 
     async def update_user_status(self, user_dto: user_dtos.UpdateUserStatusDTO) -> None:
-
-        if not await self._uow.user_repository.exists_in_tenant(user_id=user_dto.user_id, tenant_id=self._current_user.tenant_id):
+        
+        existing_user = await self._uow.user_repository.get_by_id(user_id=user_dto.user_id)
+        if not existing_user:
             raise NotFoundException(f"User with id {user_dto.user_id} not found")
+
+        if self._current_user.id == user_dto.user_id:
+            raise ForbiddenException("Cannot update your own status")
 
         await self._uow.user_repository.update_user_status(
             user_id=user_dto.user_id,
@@ -310,8 +348,11 @@ class UserService(AbstractUserService):
 
     async def update_user_role(self, update_role: user_dtos.UpdateRoleDTO) -> None:
 
-        existing_user = await self._uow.user_repository.get_user_with_role(user_id=update_role.user_id)
         tenant_id = update_role.tenant_id if update_role.tenant_id else self._current_user.tenant_id
+        existing_user = await self._uow.user_repository.get_user_with_role(user_id=update_role.user_id, tenant_id=tenant_id)
+
+        if not await self._uow.role_permission_repository.role_id_exists_in_tenant(role_id=update_role.role_id, tenant_id=tenant_id):
+            raise NotFoundException(f"Role with id {update_role.role_id} not found in tenant with id {tenant_id}")
 
         if existing_user.role_name == ADMIN and  await self._is_last_admin(update_role.user_id, tenant_id):
             raise InvalidStateTransitionException("Cannot change role of the last admin user in the tenant")
@@ -326,13 +367,7 @@ class UserService(AbstractUserService):
     async def remove_user_from_tenant(self, user_id: UUID, tenant_id: UUID | None = None) -> None:
 
         tenant_id = self._current_user.tenant_id if not tenant_id else tenant_id
-        
-        if not await self._uow.tenant_repository.tenant_id_exists(tenant_id=tenant_id):
-            raise NotFoundException(f"Tenant with id {tenant_id} not found")
-
-        self._tenant_access_policy.ensure_user_in_tenant(tenant_id)
-
-
+        await self._tenant_access_policy.ensure_user_in_tenant(tenant_id)
         await self._uow.user_repository.remove_user_from_tenant(user_id=user_id, tenant_id=tenant_id)
 
     
