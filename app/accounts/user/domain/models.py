@@ -234,6 +234,8 @@ class EmailChangeRequestModel(AggregateRoot):
 
     @property
     def is_expired(self) -> bool:
+        if not self.new_email_verification_token_created_at:
+            return False
         return datetime.now(tz=timezone.utc) > self.new_email_verification_token_created_at + EMAIL_CHANGE_REQUEST_TTL
 
 
