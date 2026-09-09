@@ -19,8 +19,9 @@ class AppException(Exception):
     error_type: ErrorType = ErrorType.INTERNAL_ERROR
     message: str = "An unexpected error occurred"
 
-    def __init__(self, message: str | None = None):
+    def __init__(self, message: str | None = None, error_type: ErrorType | None = None):
         self.message = message or self.message
+        self.error_type = error_type or self.error_type
         super().__init__(self.message)
 
 
