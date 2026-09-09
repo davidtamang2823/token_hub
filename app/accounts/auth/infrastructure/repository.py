@@ -30,6 +30,9 @@ class AbstractUserAuthRpository(abc.ABC):
     async def get_user_password_reset_request_by_email(self, email: str) -> auth_domain.UserPasswordResetModel | None: ...
 
     @abc.abstractmethod
+    async def get_user_password_reset_request_by_token(self, new_password_verification_token: str) -> auth_domain.UserPasswordResetModel | None: ...
+
+    @abc.abstractmethod
     async def save_user_verification(self, user_id: str, hashed_password: str, verified_at: datetime) -> None: ...
 
     @abc.abstractmethod
@@ -96,7 +99,7 @@ class UserAuthRepository(AbstractUserAuthRpository):
                 user_id = user_orm_obj.id,
                 email = user_orm_obj.email,
                 verification_token = user_orm_obj.verification_token,
-                verficiation_token_created_at = user_orm_obj.verification_token_created_at,
+                verification_token_created_at = user_orm_obj.verification_token_created_at,
                 verified_at = user_orm_obj.verified_at
             )
 
@@ -116,6 +119,23 @@ class UserAuthRepository(AbstractUserAuthRpository):
                 new_password_verification_token = user_orm_obj.new_password_verification_token,
                 new_password_verification_token_created_at = user_orm_obj.new_password_verification_token_created_at
             )
+    
+    async def get_user_password_reset_request_by_token(self, new_password_verification_token: str) -> auth_domain.UserPasswordResetModel | None:
+
+        stmt = (
+            select(user_orm.UserORM)
+            .where(user_orm.UserORM.new_password_verification_token == new_password_verification_token)
+        )
+
+        user_orm_obj = (await self._session.execute(stmt)).scalar_one_or_none()
+        if user_orm_obj:
+            return auth_domain.UserPasswordResetModel(
+                user_id = user_orm_obj.id,
+                email = user_orm_obj.email,
+                new_password_verification_token = user_orm_obj.new_password_verification_token,
+                new_password_verification_token_created_at = user_orm_obj.new_password_verification_token_created_at
+            )
+
 
     async def save_user_verification(self, user_id: str, hashed_password: str, verified_at: datetime) -> None:
         stmt = (
@@ -135,7 +155,7 @@ class UserAuthRepository(AbstractUserAuthRpository):
 
         stmt = (
             update(user_orm.UserORM)
-            .where(user_orm.UserORM.id == verification.user_id)
+            .where(user_orm.UserORM.id == verify.user_id)
             .values(
                 verification_token = verify.verification_token,
                 verification_token_created_at = verify.verification_token_created_at
