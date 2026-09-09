@@ -21,7 +21,7 @@ class AbstractAuthService(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def resend_verification(self, verify: dtos.ResendVerificationDTO ):
+    async def resend_verification(self, resend_verification: dtos.ResendVerificationDTO ):
         ...
 
     @abc.abstractmethod
@@ -113,9 +113,9 @@ class AuthService(AbstractAuthService):
         await self._uow.user_auth_repository.save_user_verification(user_id = existing_verify.user_id, hashed_password=hashed_password, verified_at=datetime.now(tz=timezone.utc))
 
 
-    async def resend_verification(self, verify: dtos.ResendVerificationDTO ) -> None:
+    async def resend_verification(self, resend_verification: dtos.ResendVerificationDTO ) -> None:
         
-        existing_verify = self._uow.user_auth_repository.get_user_verification_by_email(email=email)
+        existing_verify = await self._uow.user_auth_repository.get_user_verification_by_email(email=resend_verification.email)
 
         if not existing_verify:
             raise NotFoundException("User with this email not found")
@@ -128,9 +128,9 @@ class AuthService(AbstractAuthService):
         
         verify = auth_domain.UserVerificationModel.resend_verification(
             user_id=existing_verify.user_id,
-            email = verify.email,
+            email = resend_verification.email,
             verification_token=secrets.token_urlsafe(32),
-            verification_token_created_at=datetime.now(tz=datetime.timezone.utc)
+            verification_token_created_at=datetime.now(tz=timezone.utc)
         )
         self._uow.register_entity(verify)
         await self._uow.user_auth_repository.update_user_verification(verify=verify)
@@ -146,24 +146,26 @@ class AuthService(AbstractAuthService):
             user_id=existing_password_reset.user_id,
             email=existing_password_reset.email,
             new_password_verification_token=secrets.token_urlsafe(32),
-            new_password_verification_token_created_at=datetime.now(tz=datetime.timezone.utc)
+            new_password_verification_token_created_at=datetime.now(tz=timezone.utc)
         )
 
-        if password_reset.is_expired:
+        if not existing_password_reset.is_expired:
+            raise VerificationCooldownException("Password reset verfication email is already sent")
+        elif password_reset.is_expired:
             raise TokenExpiredException("User reset password verification token is expired")
 
         self._uow.register_entity(password_reset)
-        self._uow.user_auth_repository.save_user_new_password_verification(password_reset=password_reset)
+        await self._uow.user_auth_repository.save_user_new_password_verification(password_reset=password_reset)
 
     async def reset_password(self, reset_password: dtos.ResetPasswordDTO):
 
-        existing_password_reset = await self._uow.user_auth_repository.get_user_password_reset_request_by_email(email=password_reset.email)
+        existing_password_reset = await self._uow.user_auth_repository.get_user_password_reset_request_by_token(new_password_verification_token=reset_password.new_password_verification_token)
 
         if not existing_password_reset:
             raise NotFoundException("User password request not found")
         
         if existing_password_reset.is_expired:
-            raise VerificationCooldownException("Password reset verfication email is already sent")
+            raise TokenExpiredException("User password reset token has been expired")
 
         hashed_password = self._password_handler.hash_password(password=reset_password.password)
 
