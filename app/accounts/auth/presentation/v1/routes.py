@@ -40,15 +40,14 @@ async def verify_user(
     await auth_service.verify_user(verify=verify_user)
     return {"message": "User has been verified, please login"}
 
-@router.post("/resend-user-verification", dependencies=[Depends(require_permission([CAN_UPDATE_USER]))])
 @admin_router.post("/resend-user-verification", dependencies=[Depends(require_permission([CAN_UPDATE_USER]))])
 async def resend_verification(
     request: Request,
     resend_verification: dtos.ResendVerificationDTO, 
     auth_service: typing.Annotated[AbstractAuthService, Depends(get_auth_service)]
 ):
-    await auth_service.resend_verification(verify=resend_verification)
-    return {"message": "User verification email has been sent"}
+    await auth_service.resend_verification(resend_verification=resend_verification)
+    return {"message": "User re-verification email has been sent"}
 
 @public_router.post("/request-password-reset")
 async def request_password_reset(
