@@ -1,0 +1,22 @@
+from uuid import UUID
+from decimal import Decimal
+from sqlalchemy import Numeric, Boolean, String, Index, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import mapped_column, Mapped
+from core.database import TenantAuditModelORM
+
+
+class ItemORM(TenantAuditModelORM):
+
+    __tablename__ = "items"
+
+    __table_args__ = (
+        Index("ix_items_tenant_id", "tenant_id"),
+        UniqueConstraint("tenant_id", "name")
+    )
+
+    name: Mapped[str] = mapped_column(String(150))
+    description: Mapped[str] = mapped_column(String(500), nullable=True, default=None)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    group_id: Mapped[UUID] = mapped_column(ForeignKey("item_groups.id"), nullable=False)

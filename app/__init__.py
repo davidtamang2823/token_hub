@@ -8,7 +8,9 @@ from accounts.user.infrastructure.orm import UserORM
 from accounts.role_permission.infrastructure.orm import RoleORM, PermissionORM, RolePermissionORM
 from accounts.user.infrastructure.orm import UserTenantORM
 from tokens.infrastructure.orm import TokenORM
-from inventory.infrastructure.orm import ItemORM
+from catalog.item.infrastructure.orm import ItemORM
+from catalog.category.infrastructure.orm import CategoryORM
+from catalog.item_group.infrastructure.orm import ItemGroupORM
 from orders.infrastructure.orm import OrderORM
 from billing.infrastructure.orm import BillORM
 
@@ -27,6 +29,8 @@ __all__ = [
     "UserTenantORM",
     "TokenORM",
     "ItemORM",
+    "CategoryORM",
+    "ItemGroupORM",
     "OrderORM",
     "BillORM",
     "event_bus",
