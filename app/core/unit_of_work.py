@@ -3,6 +3,8 @@ from accounts.user.infrastructure.repository import AbstractUserRepository, User
 from accounts.auth.infrastructure.repository import AbstractUserAuthRpository, UserAuthRepository
 from tenants.infrastructure.repository import AbstractTenantRepository, TenantRepository
 from accounts.role_permission.infrastructure.repository import AbstractRolePermissionRepository, RolePermissionRepository
+from catalog.category.infrastructure.repository import AbstractCategoryRepository, CategoryRepository
+from catalog.item_group.infrastructure.repository import AbstractItemGroupRepository, ItemGroupRepository
 from core.events import EventBus
 from core.domain import AggregateRoot
 
@@ -50,3 +52,11 @@ class UnitOfWork:
     @property
     def role_permission_repository(self) -> AbstractRolePermissionRepository:
         return RolePermissionRepository(self._session)
+
+    @property
+    def category_repository(self) -> AbstractCategoryRepository:
+        return CategoryRepository(self._session)
+    
+    @property
+    def item_group_repository(self) -> AbstractItemGroupRepository:
+        return ItemGroupRepository(self._session)
