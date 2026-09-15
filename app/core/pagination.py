@@ -31,6 +31,11 @@ class Pagination(BaseModel, Generic[T]):
     def has_previous(self) -> bool:
         return self.page > 1
 
+    @staticmethod
+    def get_offset(page: int, page_size: int):
+        return (page - 1) * page_size
+
+
     model_config = ConfigDict(
         from_attributes=True
     )
