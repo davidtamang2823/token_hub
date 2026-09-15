@@ -34,6 +34,11 @@ CAN_ADD_USER_TO_TENANT = "can_add_user_to_tenant"
 CAN_REMOVE_USER_FROM_TENANT = "can_remove_user_from_tenant"
 CAN_UPDATE_USER_EMAIL = "can_update_user_email" 
 
+CAN_CREATE_CATEGORY = "can_create_category"
+CAN_UPDATE_CATEGORY = "can_update_category"
+CAN_VIEW_CATEGORY = "can_view_category"
+CAN_DELETE_CATEGORY = "can_delete_category"
+
 # These are only assignable to system-level roles (tenant_id = NULL).
 
 CAN_ADD_TENANT = "can_add_tenant"
@@ -67,6 +72,11 @@ USER_PERMISSIONS: frozenset[str] = frozenset({
 
     CAN_REMOVE_USER_FROM_TENANT,
     CAN_ADD_USER_TO_TENANT,
+
+    CAN_CREATE_CATEGORY,
+    CAN_UPDATE_CATEGORY,
+    CAN_VIEW_CATEGORY,
+    CAN_DELETE_CATEGORY
 })
 
 STAFF_USER_PERMISSIONS: frozenset[str] = frozenset({
@@ -218,7 +228,27 @@ ALL_PERMISSION_DETAILS: frozenset[Permission] = frozenset(
             name = "Can create bill",
             description="Allow user to create bill",
             codename = CAN_CREATE_BILL,
-        )
+        ),
+        Permission(
+            name="Can view category",
+            description="Allows viewing category within the tenant",
+            codename=CAN_VIEW_CATEGORY,
+        ),
+        Permission(
+            name="Can create category",
+            description="Allows creating new category within the tenant",
+            codename=CAN_CREATE_CATEGORY,
+        ),
+        Permission(
+            name="Can update category",
+            description="Allows updating existing category within the tenant",
+            codename=CAN_UPDATE_CATEGORY,
+        ),
+        Permission(
+            name="Can delete category",
+            description="Allows deleting category within the tenant",
+            codename=CAN_DELETE_CATEGORY,
+        ),
     }
 )
 
