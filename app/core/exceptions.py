@@ -13,6 +13,9 @@ class ErrorType(StrEnum):
     RESOURCE_IN_USE = "resource_in_use"
     INVALID_STATE = "invalid_state"
     VERIFICATION_COOLDOWN = "verification_cooldown"
+    CATEGORY_NOT_FOUND = "category_not_found"
+    CATEGORY_ALREADY_EXISTS = "category_already_exists"
+    CATEGORY_IN_USE = "category_in_use"
 
 class AppException(Exception):
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
