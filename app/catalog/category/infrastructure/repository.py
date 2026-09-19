@@ -1,5 +1,6 @@
 import abc
-from sqlalchemy import delete, or_, func, exists
+from uuid import UUID
+from sqlalchemy import delete, or_, func, exists, select
 from catalog.category.domain.models import CategoryModel
 from catalog.category.infrastructure.orm import CategoryORM
 
@@ -51,7 +52,7 @@ class CategoryRepository(AbstractCategoryRepository):
                 select(func.count()).select_from(stmt.subquery())
             )
         )
-
+        stmt = stmt.order_by(CategoryORM.name).offset(offset).limit(limit)
         category_orm_objs = (await self._session.execute(stmt)).scalars()
 
         categories = [
@@ -83,7 +84,7 @@ class CategoryRepository(AbstractCategoryRepository):
 
         stmt = (
             exists()
-            .where(CategoryORM.name.ilike(name), CategoryORM.tenant_id == tenant_id)
+            .where( CategoryORM.tenant_id == tenant_id, CategoryORM.name.ilike(name))
         )
 
         if exclude_id:
@@ -162,7 +163,7 @@ class CategoryRepository(AbstractCategoryRepository):
         ).scalar_one_or_none()
 
         if category_orm_obj:
-            self._session.delete(category_orm_obj)
+            await self._session.delete(category_orm_obj)
 
 
     def _create_category_model(self, category_orm_obj: CategoryORM) -> CategoryModel:
