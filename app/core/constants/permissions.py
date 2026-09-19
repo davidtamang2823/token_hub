@@ -39,6 +39,11 @@ CAN_UPDATE_CATEGORY = "can_update_category"
 CAN_VIEW_CATEGORY = "can_view_category"
 CAN_DELETE_CATEGORY = "can_delete_category"
 
+CAN_CREATE_ITEM_GROUP = "can_create_item_group"
+CAN_UPDATE_ITEM_GROUP = "can_update_item_group"
+CAN_VIEW_ITEM_GROUP = "can_view_item_group"
+CAN_DELETE_ITEM_GROUP = "can_delete_item_group"
+
 # These are only assignable to system-level roles (tenant_id = NULL).
 
 CAN_ADD_TENANT = "can_add_tenant"
@@ -76,7 +81,12 @@ USER_PERMISSIONS: frozenset[str] = frozenset({
     CAN_CREATE_CATEGORY,
     CAN_UPDATE_CATEGORY,
     CAN_VIEW_CATEGORY,
-    CAN_DELETE_CATEGORY
+    CAN_DELETE_CATEGORY,
+
+    CAN_CREATE_ITEM_GROUP,
+    CAN_UPDATE_ITEM_GROUP,
+    CAN_VIEW_ITEM_GROUP,
+    CAN_DELETE_ITEM_GROUP,
 })
 
 STAFF_USER_PERMISSIONS: frozenset[str] = frozenset({
@@ -249,6 +259,29 @@ ALL_PERMISSION_DETAILS: frozenset[Permission] = frozenset(
             description="Allows deleting category within the tenant",
             codename=CAN_DELETE_CATEGORY,
         ),
+
+        Permission(
+            name="Can view item group",
+            description="Allows viewing item group within the tenant",
+            codename=CAN_VIEW_ITEM_GROUP,
+        ),
+        Permission(
+            name="Can create item group",
+            description="Allows creating new item group within the tenant",
+            codename=CAN_CREATE_ITEM_GROUP,
+        ),
+        Permission(
+            name="Can update item group",
+            description="Allows updating existing item group within the tenant",
+            codename=CAN_UPDATE_ITEM_GROUP,
+        ),
+        Permission(
+            name="Can delete item group",
+            description="Allows deleting item group within the tenant",
+            codename=CAN_DELETE_ITEM_GROUP,
+        ),
+
+
     }
 )
 
