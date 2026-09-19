@@ -13,6 +13,7 @@ from tenants.presentation.v1.routes import router as tenant_router, admin_router
 from accounts.role_permission.presentation.v1.routes import router as role_router, admin_router as role_admin_router
 from accounts.user.presentation.v1.routes import router as user_router, admin_router as user_admin_router, public_router as user_public_router
 from catalog.category.presentation.v1.routes import router as category_router
+from catalog.item_group.presentation.v1.routes import router as item_group_router
 
 app = FastAPI()
 
@@ -74,6 +75,7 @@ v1_router.include_router(role_router)
 v1_router.include_router(user_router)
 v1_router.include_router(auth_router)
 v1_router.include_router(category_router)
+v1_router.include_router(item_group_router)
 
 v1_admin_router = APIRouter(prefix=API_V1, dependencies=[Depends(require_staff_user)])
 v1_admin_router.include_router(tenant_admin_router)
