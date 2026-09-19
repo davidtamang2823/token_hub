@@ -5,6 +5,7 @@ from tenants.infrastructure.repository import AbstractTenantRepository, TenantRe
 from accounts.role_permission.infrastructure.repository import AbstractRolePermissionRepository, RolePermissionRepository
 from catalog.category.infrastructure.repository import AbstractCategoryRepository, CategoryRepository
 from catalog.item_group.infrastructure.repository import AbstractItemGroupRepository, ItemGroupRepository
+from catalog.item.infrastructure.repository import AbstractItemRepository, ItemRepository
 from core.events import EventBus
 from core.domain import AggregateRoot
 
@@ -60,3 +61,7 @@ class UnitOfWork:
     @property
     def item_group_repository(self) -> AbstractItemGroupRepository:
         return ItemGroupRepository(self._session)
+
+    @property
+    def item_repository(self) -> AbstractItemRepository:
+        return ItemRepository(self._session)
