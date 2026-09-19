@@ -5,6 +5,7 @@ from catalog.category.domain.models import CategoryModel
 from catalog.category.application.dtos import CreateCategoryDTO, UpdateCategoryDTO
 from core.unit_of_work import UnitOfWork
 from core.context import CurrentUser
+from core.pagination import Pagination
 from core.exceptions import NotFoundException, ErrorType, AlreadyExistsException, ResourceInUseError
 
 class AbstractCategoryService(abc.ABC):
@@ -80,8 +81,8 @@ class CategoryService(AbstractCategoryService):
 
         category = CategoryModel.update(
             category_id = update_category.id,
-            name = create_category.name,
-            description= create_category.description,
+            name = update_category.name,
+            description= update_category.description,
             tenant_id= self._current_user.tenant_id,
             updated_by_id= self._current_user.id
         )
@@ -111,7 +112,7 @@ class CategoryService(AbstractCategoryService):
                 ErrorType.CATEGORY_NOT_FOUND
             )
 
-        if await self._uow.item_group_repository.exists_category_id(category_id):
+        if await self._uow.item_group_repository.exists_category_id_in_item_groups(category_id):
             raise ResourceInUseError(
                 f"Category {category_id} is still in use by one or more item groups", 
                 ErrorType.CATEGORY_IN_USE
