@@ -1,3 +1,4 @@
+from uuid import UUID
 from core.domain import DomainModel
 
 class CreateCategoryDTO(DomainModel):
