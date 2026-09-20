@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 from pydantic import field_validator
 from core.domain import DomainModel
 
