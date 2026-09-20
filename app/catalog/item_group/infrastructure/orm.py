@@ -10,7 +10,7 @@ class ItemGroupORM(TenantAuditModelORM):
 
     __table_args__ = (
         Index("ix_item_groups_tenant_id", "tenant_id"),
-        UniqueConstraint("tenant_id", "name")
+        UniqueConstraint("tenant_id", "name", "category_id")
     )
 
     name: Mapped[str] = mapped_column(String(150))

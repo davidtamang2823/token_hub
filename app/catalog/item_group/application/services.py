@@ -74,7 +74,7 @@ class ItemGroupService(AbstractItemGroupService):
             )
 
 
-        if await self._uow.item_group_repository.exists_item_group_name(item_group.name, item_group.tenant_id):
+        if await self._uow.item_group_repository.exists_item_group_name(item_group.name, item_group.tenant_id, item_group.category_id):
             raise AlreadyExistsException(
                 f"Cannot create, item group with this name {item_group.name} already exists", 
                 ErrorType.ITEM_GROUP_ALREADY_EXISTS
@@ -110,7 +110,7 @@ class ItemGroupService(AbstractItemGroupService):
                 ErrorType.CATEGORY_NOT_FOUND
             )
 
-        if await self._uow.item_group_repository.exists_item_group_name(item_group.name, item_group.tenant_id, item_group.id):
+        if await self._uow.item_group_repository.exists_item_group_name(item_group.name, item_group.tenant_id, item_group.category_id, item_group.id):
             raise AlreadyExistsException(
                 f"Cannot update, item group with this name {item_group.name} already exists", 
                 ErrorType.ITEM_GROUP_ALREADY_EXISTS
