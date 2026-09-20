@@ -32,11 +32,13 @@ async def retrieve_item_group(
     request: Request,
     item_group_service: Annotated[AbstractItemGroupService, Depends(get_item_group_service)],
     q: str | None = None,
+    category_id: UUID | None = None,
     page: int = DEFAULT_PAGE,
     page_size: int = DEFAULT_PAGE_SIZE
 ):
     item_group_filters = {
-        "q": q
+        "q": q,
+        "category_id": category_id
     }
 
     total, item_groups = await item_group_service.list_item_group(item_group_filters, page, page_size)
