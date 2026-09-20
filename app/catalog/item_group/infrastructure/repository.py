@@ -15,7 +15,7 @@ class AbstractItemGroupRepository(abc.ABC):
     async def retrieve_item_group(self, item_group_id: UUID, tenant_id: UUID) -> ItemGroupReadModel | None: ...
 
     @abc.abstractmethod
-    async def exists_item_group_name(self, name: str, tenant_id: UUID, exclude_id: UUID | None = None) -> bool: ...
+    async def exists_item_group_name(self, name: str, tenant_id: UUID, category_id: UUID, exclude_id: UUID | None = None) -> bool: ...
 
     @abc.abstractmethod
     async def exists_item_group_id(self, item_group_id: UUID, tenant_id: UUID) -> bool: ...
@@ -46,6 +46,7 @@ class ItemGroupRepository(AbstractItemGroupRepository):
 
         tenant_id = item_group_filters.get("tenant_id")
         q = item_group_filters.get("q")
+        category_id = item_group_filters.get("category_id")
 
         stmt = (
             select(ItemGroupORM)
@@ -55,6 +56,9 @@ class ItemGroupRepository(AbstractItemGroupRepository):
 
         if q:
             stmt = stmt.where(ItemGroupORM.name.ilike(f"{q}%"))
+        
+        if category_id:
+            stmt = stmt.where(ItemGroupORM.category_id == category_id)
 
         total = (
             await self._session.scalar(
@@ -96,11 +100,15 @@ class ItemGroupRepository(AbstractItemGroupRepository):
                 category_name = item_group_orm_obj.category.name
             )
 
-    async def exists_item_group_name(self, name: str, tenant_id: UUID, exclude_id: UUID | None = None) -> bool:
+    async def exists_item_group_name(self, name: str, tenant_id: UUID, category_id: UUID, exclude_id: UUID | None = None) -> bool:
 
         stmt = (
             exists()
-            .where(ItemGroupORM.tenant_id == tenant_id, ItemGroupORM.name.ilike(name))
+            .where(
+                ItemGroupORM.tenant_id == tenant_id, 
+                ItemGroupORM.category_id == category_id,  
+                ItemGroupORM.name.ilike(name)
+            )
         )
 
         if exclude_id:
@@ -183,8 +191,8 @@ class ItemGroupRepository(AbstractItemGroupRepository):
             await self._session.execute(
                 select(ItemGroupORM)
                 .where(
-                    ItemGroupORM.tenant_id == update_item_group.tenant_id,
-                    ItemGroupORM.id == update_item_group.id
+                    ItemGroupORM.tenant_id == tenant_id,
+                    ItemGroupORM.id == item_group_id
                 )
             )
         ).scalar_one_or_none()
