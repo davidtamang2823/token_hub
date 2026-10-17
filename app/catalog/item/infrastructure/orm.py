@@ -11,7 +11,7 @@ class ItemORM(TenantAuditModelORM):
 
     __table_args__ = (
         Index("ix_items_tenant_id", "tenant_id"),
-        UniqueConstraint("tenant_id", "name")
+        UniqueConstraint("tenant_id", "name", "group_id")
     )
 
     name: Mapped[str] = mapped_column(String(150))
