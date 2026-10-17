@@ -15,6 +15,9 @@ class AbstractCategoryService(abc.ABC):
     async def list_category(self, category_filters: dict, page: int, page_size: int) -> tuple[int, list[CategoryModel]]: ...
 
     @abc.abstractmethod
+    async def list_option_category(self, category_filters) -> list[CategoryModel]: ...
+
+    @abc.abstractmethod
     async def retrieve_category(self, category_id: UUID) -> CategoryModel: ...  
 
     @abc.abstractmethod
@@ -40,6 +43,14 @@ class CategoryService(AbstractCategoryService):
         offset = Pagination.get_offset(page, page_size)
         total, categories = await self._uow.category_repository.list_category(category_filters, offset, page_size)
         return total, categories
+
+
+    async def list_option_category(self, category_filters) -> list[CategoryModel]:
+
+        category_filters["tenant_id"] = self._current_user.tenant_id
+        _, categories = await self._uow.category_repository.list_category(category_filters)
+        return categories
+
 
     async def retrieve_category(self, category_id: UUID) -> CategoryModel:
 

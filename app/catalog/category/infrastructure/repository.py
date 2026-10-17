@@ -8,7 +8,7 @@ class AbstractCategoryRepository(abc.ABC):
 
 
     @abc.abstractmethod
-    async def list_category(self, category_filters: dict, offset: int, limit: int) -> tuple[int, list[CategoryModel]]: ...
+    async def list_category(self, category_filters: dict, offset: int = None, limit: int = None) -> tuple[int, list[CategoryModel]]: ...
 
     @abc.abstractmethod
     async def retrieve_category(self, category_id: UUID, tenant_id: UUID) -> CategoryModel: ...
@@ -34,7 +34,7 @@ class CategoryRepository(AbstractCategoryRepository):
     def __init__(self, session):
         self._session = session
 
-    async def list_category(self, category_filters: dict, offset: int, limit: int) -> tuple[int, list[CategoryModel]]:
+    async def list_category(self, category_filters: dict, offset: int = None, limit: int = None) -> tuple[int, list[CategoryModel]]:
 
         tenant_id = category_filters.get("tenant_id")
         q = category_filters.get("q")
@@ -47,12 +47,17 @@ class CategoryRepository(AbstractCategoryRepository):
         if q:
             stmt = stmt.where(CategoryORM.name.ilike(f"{q}%"))
 
+        stmt = stmt.order_by(CategoryORM.name)
+
         total = (
             await self._session.scalar(
                 select(func.count()).select_from(stmt.subquery())
             )
         )
-        stmt = stmt.order_by(CategoryORM.name).offset(offset).limit(limit)
+
+        if offset is not None and limit is not None:
+            stmt = stmt.offset(offset).limit(limit)
+
         category_orm_objs = (await self._session.execute(stmt)).scalars()
 
         categories = [
