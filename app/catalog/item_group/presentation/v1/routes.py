@@ -1,6 +1,6 @@
 from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.requests import Request
 from core.dependencies import require_permission
 from core.constants.permissions import (
@@ -18,6 +18,22 @@ from catalog.item_group.application.dtos import CreateItemGroupDTO, UpdateItemGr
 
 router = APIRouter(prefix="/item-groups", tags=["Item Groups API"])
 
+
+@router.get("/options", dependencies=[Depends(require_permission([CAN_VIEW_ITEM_GROUP]))], response_model=list[ItemGroupReadModel])
+async def list_item_group(
+    item_group_service: Annotated[AbstractItemGroupService, Depends(get_item_group_service)],
+    category_ids: Annotated [list[UUID] | None, Query()] = None,
+    q: str | None = None,
+
+):
+    item_group_filters = {
+        "q": q,
+        "category_ids": category_ids
+    }
+
+    item_groups = await item_group_service.list_option_item_group(item_group_filters)
+    return item_groups
+
 @router.get("/{item_group_id}", dependencies=[Depends(require_permission([CAN_VIEW_ITEM_GROUP]))], response_model=ItemGroupReadModel)
 async def retrieve_item_group(
     request: Request,
@@ -28,17 +44,17 @@ async def retrieve_item_group(
     return response_data
 
 @router.get("", dependencies=[Depends(require_permission([CAN_VIEW_ITEM_GROUP]))], response_model=Pagination)
-async def retrieve_item_group(
+async def list_item_group(
     request: Request,
     item_group_service: Annotated[AbstractItemGroupService, Depends(get_item_group_service)],
+    category_ids: Annotated [list[UUID] | None, Query()] = None,
     q: str | None = None,
-    category_id: UUID | None = None,
     page: int = DEFAULT_PAGE,
     page_size: int = DEFAULT_PAGE_SIZE
 ):
     item_group_filters = {
         "q": q,
-        "category_id": category_id
+        "category_ids": category_ids
     }
 
     total, item_groups = await item_group_service.list_item_group(item_group_filters, page, page_size)
@@ -48,6 +64,8 @@ async def retrieve_item_group(
         total = total,
         data=item_groups
     )
+
+
 
 @router.post("", dependencies=[Depends(require_permission([CAN_CREATE_ITEM_GROUP]))], response_model=ItemGroupReadModel)
 async def create_item_group(

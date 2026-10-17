@@ -9,7 +9,7 @@ from catalog.item_group.application.read_models import ItemGroupReadModel
 class AbstractItemGroupRepository(abc.ABC):
 
     @abc.abstractmethod
-    async def list_item_group(self, item_group_filters: dict, offset: int, limit: int) -> tuple[int, list[ItemGroupReadModel]]: ...
+    async def list_item_group(self, item_group_filters: dict, offset: int = None, limit: int = None) -> tuple[int, list[ItemGroupReadModel]]: ...
 
     @abc.abstractmethod
     async def retrieve_item_group(self, item_group_id: UUID, tenant_id: UUID) -> ItemGroupReadModel | None: ...
@@ -42,11 +42,11 @@ class ItemGroupRepository(AbstractItemGroupRepository):
         self._session = session
 
 
-    async def list_item_group(self, item_group_filters: dict, offset: int, limit: int) -> tuple[int, list[ItemGroupReadModel]]:
+    async def list_item_group(self, item_group_filters: dict, offset: int = None, limit: int = None) -> tuple[int, list[ItemGroupReadModel]]:
 
         tenant_id = item_group_filters.get("tenant_id")
         q = item_group_filters.get("q")
-        category_id = item_group_filters.get("category_id")
+        category_ids = item_group_filters.get("category_ids")
 
         stmt = (
             select(ItemGroupORM)
@@ -57,14 +57,19 @@ class ItemGroupRepository(AbstractItemGroupRepository):
         if q:
             stmt = stmt.where(ItemGroupORM.name.ilike(f"{q}%"))
         
-        if category_id:
-            stmt = stmt.where(ItemGroupORM.category_id == category_id)
+        if category_ids:
+            stmt = stmt.where(ItemGroupORM.category_id.in_(category_id))
+
+        stmt = stmt.order_by(ItemGroupORM.name).distinct()
 
         total = (
             await self._session.scalar(
                 select(func.count()).select_from(stmt.subquery())
             )
         )
+
+        if offset is not None and limit is not None:
+            stmt = stmt.offset(offset).limit(limit)
 
         item_group_orm_objs = ( await self._session.execute(stmt) ).scalars()
         item_groups = [

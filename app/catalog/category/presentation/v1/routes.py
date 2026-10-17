@@ -42,6 +42,21 @@ async def list_category(
 
     return paginated_data
 
+
+
+@router.get("/options", dependencies=[Depends(require_permission([CAN_VIEW_CATEGORY]))], response_model=list[CategorySchema])
+async def list_option_category(
+    request:Request, 
+    category_service: Annotated[AbstractCategoryService, Depends(get_category_service)],
+    q: str | None = None,
+):
+    category_filters = {
+        "q": q
+    }
+
+    categories = await category_service.list_option_category(category_filters)
+    return categories
+
 @router.get("/{category_id}", dependencies=[Depends(require_permission([CAN_VIEW_CATEGORY]))], response_model=CategorySchema)
 async def retrieve_category(
     request: Request, 
