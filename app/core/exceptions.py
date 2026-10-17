@@ -19,6 +19,9 @@ class ErrorType(StrEnum):
     ITEM_GROUP_NOT_FOUND = "item_group_not_found"
     ITEM_GROUP_ALREADY_EXISTS = "item_group_already_exists"
     ITEM_GROUP_IN_USE = "item_group_in_use"
+    ITEM_NOT_FOUND = "item_not_found"
+    ITEM_ALREADY_EXISTS = "item_already_exists"
+    ITEM_IN_USE = "item_in_use"
 
 class AppException(Exception):
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
